@@ -1,12 +1,30 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import validates
+from sqlalchemy_serializer import SerializerMixin
+
 import re
 
 db = SQLAlchemy()
+userRoles_association = db.Table(
+    'user_roles',
+    db.Column('user_id', db.Integer,db.ForeignKey('users.id')),
+    db.Column('role_id', db.Integer,db.ForeignKey('roles.id'))
+)
+eventsUsers_association = db.Table(
+    'event_users',
+    db.Column('event_id', db.Integer,db.ForeignKey('events.id')),
+    db.Column('users_id', db.Integer,db.ForeignKey('users.id'))
+)
+class Role(db.Model,SerializerMixin):
+    __tablename__ = 'roles'
+    
+    serialize_rules = ('-users.roles',)
 
-class Role(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
+
+    # Relationships
+    users = db.relationship('User', secondary=userRoles_association, back_populates = 'roles')
 
     @validates('name')
     def validate_name(self, key, name):
@@ -14,14 +32,23 @@ class Role(db.Model):
             raise ValueError("Role name cannot be empty.")
         return name
 
-class User(db.Model):
+class User(db.Model,SerializerMixin):
+    __tablename__ = 'users'
+
+    serialize_rules = ('-payments.users','-roles.users','-events.users',)
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), nullable=False, unique=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(100), nullable=False)
     phone_number = db.Column(db.String(20), nullable=True)
-    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=False)
-    role = db.relationship('Role', backref=db.backref('users', lazy=True))
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
+    # role = db.relationship('Role', backref=db.backref('users', lazy=True))
+
+    # relationships
+    payments = db.relationship('Payment', backref='users')
+    roles = db.relationship('Role', secondary=userRoles_association, back_populates = 'users')
+    events = db.relationship('Event', secondary=eventsUsers_association, back_populates = 'users')
 
     @validates('username')
     def validate_username(self, key, username):
@@ -51,7 +78,11 @@ class User(db.Model):
                 raise ValueError("Invalid phone number format.")
         return phone_number
 
-class Event(db.Model):
+class Event(db.Model,SerializerMixin):
+    __tablename__ = 'events'
+
+    serialize_rules = ('-payments.events','-categories.events','-users.events',)
+   
     id = db.Column(db.Integer, primary_key=True)
     event_name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
@@ -64,8 +95,12 @@ class Event(db.Model):
     regular_price = db.Column(db.Numeric(10, 2), nullable=True)
     images = db.Column(db.String(255), nullable=True)  # Add 'images' column for storing image URLs
     available_tickets = db.Column(db.Integer, nullable=True)  # Add 'available_tickets' column for ticket count
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user = db.relationship('User', backref=db.backref('events', lazy=True))
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True) 
+
+     # relationships
+    
+    payments = db.relationship('Payment', backref='events')
+    users = db.relationship('User', secondary=eventsUsers_association, back_populates = 'events')
 
     @validates('event_name')
     def validate_event_name(self, key, event_name):
@@ -74,15 +109,18 @@ class Event(db.Model):
         return event_name
 
 
-class Payment(db.Model):
+class Payment(db.Model,SerializerMixin):
+    __tablename__ = 'payments'
+
+    serialize_rules =('-users.payments','-events.payments',)
+
     id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Float)
     payment_type = db.Column(db.String(50), nullable=False)
     status = db.Column(db.String(50), nullable=False)
     payment_date = db.Column(db.DateTime, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user = db.relationship('User', backref=db.backref('payments', lazy=True))
-    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    event = db.relationship('Event', backref=db.backref('payments', lazy=True))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey('events.id'), nullable=False)
 
     @validates('payment_type')
     def validate_payment_type(self, key, payment_type):
@@ -95,9 +133,16 @@ class Payment(db.Model):
         if not status:
             raise ValueError("Payment status cannot be empty.")
         return status
-class Category(db.Model):
+class Category(db.Model,SerializerMixin):
+    __tablename__ = 'categories'
+
+    serialize_rules =('-events.categories',)
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
+
+    # relationships
+    events = db.relationship('Event', backref='categories')
 
     @validates('name')
     def validate_name(self, key, name):

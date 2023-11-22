@@ -13,51 +13,80 @@ def test_user_model():
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    new_role = Role(name="Customer")
-    session.add(new_role)
-    session.commit()
+    try:
+        new_role = Role(name="Speaker")
+        session.add(new_role)
+        session.commit()
+        print("Role added successfully.")
 
-    new_customer = User(username="Maasai Obadia", email="obadiakim@gmail.com", password="obadia123", phone_number="0775649842", role_id=new_role.id)
-    session.add(new_customer)
-    session.commit()
+        new_customer = User(username="Joseph Parmuat", email="parmuatjoseph234@gmail.com", password="parmuat", phone_number="0706504461", role_id=new_role.id)
+        session.add(new_customer)
+        session.commit()
+        print("Customer added successfully.")
 
-    new_role_organizer = Role(name="Event Organizer")
-    session.add(new_role_organizer)
-    session.commit()
+        new_role_organizer = Role(name="Event sponsor")
+        session.add(new_role_organizer)
+        session.commit()
+        print("Organizer Role added successfully.")
 
-    new_organizer = User(username="Gideon Bett", email="bettgideon456@gmail.com", password="kiptoo", phone_number="0798667046", role_id=new_role_organizer.id)
-    session.add(new_organizer)
-    session.commit()
+        new_organizer = User(username="Brian Almasi", email="brianalmasi84@gmail.com", password="almasi123", phone_number="0724486178", role_id=new_role_organizer.id)
+        session.add(new_organizer)
+        session.commit()
+        print("Organizer added successfully.")
 
-    event_date = datetime.strptime("2023-11-30", "%Y-%m-%d").date()
+        event_date = datetime.strptime("2023-06-07", "%Y-%m-%d").date()
 
-    new_category = Category(name="Tech")
-    session.add(new_category)
-    session.commit()
+        new_category = Category(name="AI's")
+        session.add(new_category)
+        session.commit()
+        print("Category added successfully.")
 
-    new_event = Event(name="Droidcon", date=event_date, ticket_price=5000.0, category_id=new_category.id)
-    session.add(new_event)
-    session.commit()
+        new_event = Event(
+            event_name="AI display",
+            description="shaping developers",
+            tags="speaker, sponsor",
+            location="KICC",
+            start_time=datetime.utcnow(),
+            end_time=datetime.utcnow(),
+            early_booking_price=4000.0,
+            MVP_price=6000.0,
+            regular_price=6500.0,
+            images="https://images.pexels.com/photos/16882422/pexels-photo-16882422/free-photo-of-close-up-of-a-group-of-people-holding-tickets.jpeg?auto=compress&cs=tinysrgb&w=600", 
+            available_tickets=100,  
+            user_id=new_customer.id,
+            category_id=new_category.id
+        )
+        session.add(new_event)
+        session.commit()
+        print("Event added successfully.")
 
-    new_payment = Payment(amount=10000.0, user_id=new_customer.id, event_id=new_event.id)
-    session.add(new_payment)
-    session.commit()
+        new_payment = Payment(
+            payment_type="Credit Card",
+            status="Success",
+            payment_date=datetime.utcnow(),
+            amount=9800.0,
+            user_id=new_customer.id,
+            event_id=new_event.id
+        )
+        session.add(new_payment)
+        session.commit()
+        session.close()
 
-    all_customers = session.query(User).filter_by(role_id=new_role.id).all()
-    for customer in all_customers:
-        print(customer.username, customer.email, customer.password, customer.phone_number)
+        print("Payment added successfully.")
 
-    all_organizers = session.query(User).filter_by(role_id=new_role_organizer.id).all()
-    for organizer in all_organizers:
-        print(organizer.username, organizer.email, organizer.password, organizer.phone_number)
+        all_events = session.query(Event).all()
+        print("All Events:")
+        for event in all_events:
+            print(event.event_name, event.description, event.tags, event.location, event.start_time, event.end_time, event.early_booking_price, event.MVP_price, event.regular_price, event.user_id, event.category_id, event.images, event.available_tickets)
 
-    all_events = session.query(Event).all()
-    for event in all_events:
-        print(event.name, event.date, event.ticket_price, event.category_id)
+        all_payments = session.query(Payment).all()
+        print("All Payments:")
+        for payment in all_payments:
+            print(payment.amount, payment.user_id, payment.event_id)
 
-    all_payments = session.query(Payment).all()
-    for payment in all_payments:
-        print(payment.amount, payment.user_id, payment.event_id)
+    except Exception as e:
+        print("Error:", e)
+        session.rollback()
 
 if __name__ == "__main__":
     test_user_model()

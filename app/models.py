@@ -53,26 +53,48 @@ class User(db.Model):
 
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False)
-    date = db.Column(db.Date, nullable=False)
-    ticket_price = db.Column(db.Numeric(10, 2), nullable=False)
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
-    category = db.relationship('Category', backref=db.backref('events', lazy=True))
+    event_name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    tags = db.Column(db.String(200), nullable=True)
+    location = db.Column(db.String(200), nullable=True)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
+    early_booking_price = db.Column(db.Numeric(10, 2), nullable=True)
+    MVP_price = db.Column(db.Numeric(10, 2), nullable=True)
+    regular_price = db.Column(db.Numeric(10, 2), nullable=True)
+    images = db.Column(db.String(255), nullable=True)  # Add 'images' column for storing image URLs
+    available_tickets = db.Column(db.Integer, nullable=True)  # Add 'available_tickets' column for ticket count
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', backref=db.backref('events', lazy=True))
 
-    @validates('name')
-    def validate_name(self, key, name):
-        if not name:
+    @validates('event_name')
+    def validate_event_name(self, key, event_name):
+        if not event_name:
             raise ValueError("Event name cannot be empty.")
-        return name
+        return event_name
+
 
 class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    payment_type = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(50), nullable=False)
+    payment_date = db.Column(db.DateTime, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     user = db.relationship('User', backref=db.backref('payments', lazy=True))
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
     event = db.relationship('Event', backref=db.backref('payments', lazy=True))
 
+    @validates('payment_type')
+    def validate_payment_type(self, key, payment_type):
+        if not payment_type:
+            raise ValueError("Payment type cannot be empty.")
+        return payment_type
+
+    @validates('status')
+    def validate_status(self, key, status):
+        if not status:
+            raise ValueError("Payment status cannot be empty.")
+        return status
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)

@@ -29,6 +29,7 @@ def seed_users():
                 role_id=fake.random_element(elements=roles).id
             )
             print("Adding user:", user)
+            user.roles.append(fake.random_element(elements=roles))
             db.session.add(user)
         db.session.commit()  # Commit changes after seeding users
         print("Users added successfully.")

@@ -20,7 +20,7 @@ migrate = Migrate(app, db)
 
 
 api = Api(app)
-CORS (app)
+CORS(app)
 
 
 class Eventors(Resource):

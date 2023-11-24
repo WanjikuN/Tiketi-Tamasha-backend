@@ -13,6 +13,8 @@ fake = Faker()
 
 def seed_users():
     with app.app_context():
+        roles = Role.query.all()
+
         for _ in range(10):
             # Generate a random phone number and ensure it matches the expected format
             phone_number = None
@@ -24,12 +26,13 @@ def seed_users():
                 email=fake.email(),
                 password=fake.password(),
                 phone_number=phone_number,
-                role_id=fake.random_element(elements=(1, 2, 3))
+                role_id=fake.random_element(elements=roles).id
             )
             print("Adding user:", user)
+            user.roles.append(fake.random_element(elements=roles))
             db.session.add(user)
-        db.session.commit()  # Commit changes after seeding users
-        print("Users added successfully.")
+            db.session.commit()  # Commit changes after seeding users
+            print("Users added successfully.")
 
 def seed_roles():
     with app.app_context():
@@ -42,7 +45,9 @@ def seed_roles():
 
 def seed_events():
     with app.app_context():
+        users = User.query.all()
         for _ in range(5):
+            random_user = fake.random_element(elements=users)
             event = Event(
                 event_name=fake.word(),
                 description=fake.text(),
@@ -56,6 +61,9 @@ def seed_events():
                 available_tickets=fake.random_int(min=50, max=200),
                 category_id=fake.random_element(elements=(1, 2, 3))
             )
+            # Associate the event with the random user
+            event.users.append(random_user)
+
             db.session.add(event)
         db.session.commit()  # Commit changes after seeding events
         print("Events added successfully.")

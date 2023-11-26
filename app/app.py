@@ -3,12 +3,18 @@ from flask_migrate import Migrate
 from flask import Flask,jsonify,request,make_response
 from flask_restful import Api,Resource
 from werkzeug.exceptions import NotFound
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
 from models import db,Event, Payment, Role, Category
 # from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 import random
 import string
+# Daraja
+import requests
+from requests.auth import HTTPBasicAuth
+import json
+from datetime import datetime
+import base64
 
 app =Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///app.db'
@@ -18,11 +24,93 @@ app.config['JSONIFY_PRETTYPRINT_REGULAR']=True
 db.init_app(app)
 migrate = Migrate(app, db)
 
-
 api = Api(app)
 CORS(app)
+CORS(app, resources={r"/lnmo": {"origins": "http://localhost:3000"}})
+
+base_url = 'https://77fb-41-90-66-250.ngrok-free.app'
+consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'
+consumer_secrets = 'YG2R7UVJfKtj8MkK'
 
 
+class Stk_Push(Resource):
+    @cross_origin(supports_credentials=True)
+    def get(self):
+        amount =request.args.get('amount')
+        phone = request.args.get('phone')
+
+        endpoint = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
+
+        access_token = _access_token()
+        headers = { "Authorization": "Bearer %s" % access_token }
+        my_endpoint = base_url + "/lnmo"
+        Timestamp = datetime.now()
+        times = Timestamp.strftime("%Y%m%d%H%M%S")
+        password = "174379" + "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919" + times
+        datapass = base64.b64encode(password.encode('utf-8')).decode("utf-8")
+
+        data = {
+            "BusinessShortCode": "174379",
+            "Password": datapass,
+            "Timestamp": times,
+            "TransactionType": "CustomerPayBillOnline",
+            "PartyA": phone, 
+            "PartyB": "174379",
+            "PhoneNumber": phone, 
+            "CallBackURL": my_endpoint,
+            "AccountReference": "Tiketi Tamasha",
+            "TransactionDesc": "HelloTest",
+            "Amount": amount
+        }
+
+        res = requests.post(endpoint, json = data, headers = headers)
+        return res.json()
+
+
+    @cross_origin(supports_credentials=True)
+    def post(self):
+        data = request.get_data()
+        print(data)
+
+        # Decode bytes to string
+        decoded_data = data.decode('utf-8')
+
+        # Parse the JSON data
+        try:
+            json_data = json.loads(decoded_data)
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+            return 'Error decoding JSON'
+
+        # Access the 'Item' list under 'CallbackMetadata'
+        result_code = json_data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
+
+        items = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
+        if result_code == 0:
+            
+            for item in items:
+                name = item.get('Name')
+                value = item.get('Value')
+                print(f"Name: {name}, Value: {value}")
+        # 'a' (append) mode
+        else:
+            
+            print(f"Payment failed. Result Code: {result_code}")
+
+        with open('lnmo.json', 'a') as f:
+            f.write(decoded_data)
+        return jsonify({"Result": "ok"})
+
+def _access_token():
+        consumer_key = consumer_keys
+        consumer_secret = consumer_secrets
+        endpoint = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
+
+        r = requests.get(endpoint, auth=HTTPBasicAuth(consumer_key, consumer_secret))
+        data = r.json()
+        return data['access_token']
+    
+api.add_resource(Stk_Push, '/lnmo', endpoint='lnmo')
 class Eventors(Resource):
     def get(self):
         even_dict=[n.to_dict() for n in Event.query.all()]

@@ -112,17 +112,31 @@ def _access_token():
     
 api.add_resource(Stk_Push, '/lnmo', endpoint='lnmo')
 class Eventors(Resource):
-    def get(self):
-        even_dict=[n.to_dict() for n in Event.query.all()]
-        response = make_response(
-            jsonify(even_dict),200
-        )
+    def get(self, event_id=None):
+        print(f"Received request for event ID: {event_id}")
+
+        if event_id is None:
+            even_list = [{"event_id": n.id, **n.to_dict()} for n in Event.query.all()]
+            response = make_response(
+                jsonify(even_list), 200
+            )
+        else:
+            event = Event.query.get(event_id)
+            if event:
+                response = make_response(
+                    jsonify({"event_id": event.id, **event.to_dict()}), 200
+                )
+            else:
+                response = make_response(
+                    jsonify({"message": "Event not found"}), 404
+                )
+
         return response
     
 
     def post(self):
         data = request.get_json()        
-        newrec= Event(
+        newrec = Event(
             event=data.get('event'),
             start_time=data.get('start_time'),
             end_time=data.get('end_time'),
@@ -132,6 +146,19 @@ class Eventors(Resource):
             regular_price=data.get('regular_price'),
             Early_booking_price=data.get('Early_booking_price'),
         )
+        
+        db.session.add(newrec)
+        db.session.commit()
+
+        newrec_dict = newrec.to_dict()
+
+        response = make_response(jsonify(newrec_dict))
+        response.content_type = 'application/json'
+
+        return response
+
+        
+
     def delete(self, event_id):
         
         event = Event.query.get(event_id)
@@ -165,7 +192,9 @@ class Eventors(Resource):
 
         return response
     
-api.add_resource(Eventors, '/events', endpoint='events')
+api.add_resource(Eventors, '/events', '/events/<int:event_id>', endpoint='events')
+
+
     
 class PaymentResource(Resource):
     def get(self):

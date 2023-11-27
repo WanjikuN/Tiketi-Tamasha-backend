@@ -30,7 +30,7 @@ migrate = Migrate(app, db)
 
 api = Api(app)
 CORS(app)
-CORS(app, resources={r"/lnmo": {"origins": "http://localhost:3000"}})
+CORS(app, resources={r"/lnmo": {"origins": "https://tiketi-tamasha.vercel.app/"}})
 
 base_url = 'https://tiketi-tamasha-backend.onrender.com/'
 consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'

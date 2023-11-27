@@ -11,6 +11,8 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+app.config['PROPAGATE_EXCEPTIONS'] = True
+
 app.config['SECRET_KEY'] = 'your_secret_key_here'
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -46,7 +48,7 @@ class SignUp(Resource):
         return make_response(newuser.to_dict(), 201)
 
 
-api.add_resource(SignUp, '/signup', endpoint='signup')
+api.add_resource(SignUp, '/signup', endpoint='/signup')
 
 
 class Logout(Resource):
@@ -59,7 +61,6 @@ class Logout(Resource):
 
 
 api.add_resource(Logout, '/logout', endpoint='logout')
-
 
 class Eventors(Resource):
     def get(self):
@@ -91,7 +92,6 @@ class Eventors(Resource):
 
 
 api.add_resource(Eventors, '/events', endpoint='events')
-
 
 
 class PaymentResource(Resource):
@@ -242,7 +242,3 @@ if __name__ == '__main__':
 # if __name__ == '__main__':
 #     app.run(debug=True, port=5000)
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)

@@ -20,9 +20,10 @@ from datetime import datetime
 import base64
 
 app =Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI']=os.environ['DATABASE_URI']
+print(f'Database URI from environment: {os.environ.get("DATABASE_URI")}')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JSONIFY_PRETTYPRINT_REGULAR']=True
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 # migrate = Migrate(app.db)
 db.init_app(app)
 migrate = Migrate(app, db)

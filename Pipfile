@@ -9,7 +9,11 @@ flask-migrate = "*"
 flask-cors = "*"
 flask-sqlalchemy = "*"
 sqlalchemy-serializer = "*"
-
+flask-restful = "*"
+faker = "*"
+requests = "*"
+gunicorn = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 

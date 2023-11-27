@@ -32,7 +32,7 @@ api = Api(app)
 CORS(app)
 CORS(app, resources={r"/lnmo": {"origins": "http://localhost:3000"}})
 
-base_url = 'https://77fb-41-90-66-250.ngrok-free.app'
+base_url = 'https://tiketi-tamasha-backend.onrender.com/'
 consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'
 consumer_secrets = 'YG2R7UVJfKtj8MkK'
 

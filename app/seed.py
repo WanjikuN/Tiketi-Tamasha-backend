@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from faker import Faker
 from models import db, User, Role, Event, Payment, Category
 import re
+import os
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -16,7 +17,6 @@ def seed_users():
         roles = Role.query.all()
 
         for _ in range(10):
-            # Generate a random phone number and ensure it matches the expected format
             phone_number = None
             while not phone_number or not re.match(r'^\+?1?\d{9,15}$|\+?1?\d{3} ?\d{3} ?\d{3}$', phone_number):
                 phone_number = fake.phone_number()
@@ -31,16 +31,18 @@ def seed_users():
             print("Adding user:", user)
             user.roles.append(fake.random_element(elements=roles))
             db.session.add(user)
-            db.session.commit()  # Commit changes after seeding users
+            db.session.commit() 
             print("Users added successfully.")
 
 def seed_roles():
     with app.app_context():
         roles = ['Admin', 'Moderator', 'User']
         for role_name in roles:
-            role = Role(name=role_name)
-            db.session.add(role)
-        db.session.commit()  # Commit changes after seeding roles
+            existing_role = Role.query.filter_by(name=role_name).first()
+            if not existing_role:
+                role = Role(name=role_name)
+                db.session.add(role)
+        db.session.commit() 
         print("Roles added successfully.")
 
 def seed_events():
@@ -61,11 +63,10 @@ def seed_events():
                 available_tickets=fake.random_int(min=50, max=200),
                 category_id=fake.random_element(elements=(1, 2, 3))
             )
-            # Associate the event with the random user
             event.users.append(random_user)
 
             db.session.add(event)
-        db.session.commit()  # Commit changes after seeding events
+        db.session.commit() 
         print("Events added successfully.")
 
 def seed_payments():
@@ -80,16 +81,18 @@ def seed_payments():
                 event_id=fake.random_int(min=1, max=5)
             )
             db.session.add(payment)
-        db.session.commit()  # Commit changes after seeding payments
+        db.session.commit() 
         print("Payments added successfully.")
 
 def seed_categories():
     with app.app_context():
         categories = ['Music', 'Sports', 'Technology']
         for category_name in categories:
-            category = Category(name=category_name)
-            db.session.add(category)
-        db.session.commit()  # Commit changes after seeding categories
+            existing_category = Category.query.filter_by(name=category_name).first()
+            if not existing_category:
+                category = Category(name=category_name)
+                db.session.add(category)
+        db.session.commit()  
         print("Categories added successfully.")
 
 if __name__ == '__main__':

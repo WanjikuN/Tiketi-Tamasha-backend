@@ -2,13 +2,9 @@ from flask_migrate import Migrate
 from flask import Flask, jsonify, request, make_response, session
 from flask_restful import Api, Resource
 from werkzeug.exceptions import NotFound
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db, Event, Payment, Role, Category, User
-from werkzeug.security import generate_password_hash
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 app.config['PROPAGATE_EXCEPTIONS'] = True
@@ -19,57 +15,17 @@ migrate = Migrate(app, db)
 
 api = Api(app)
 CORS(app)
+CORS(app, resources={r"/lnmo": {"origins": "http://localhost:3000"}})
+
+base_url = 'https://77fb-41-90-66-250.ngrok-free.app'
+consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'
+consumer_secrets = 'YG2R7UVJfKtj8MkK'
 
 
-class SignUp(Resource):
-    def post(self):
-        data = request.get_json()
-
-        username = data.get('username')
-        password = data.get('password')
-        email = data.get('email')
-        phone_number = data.get('phone_number')
-
-        if not username or not password:
-            return {'message': 'Username or password required'}, 400
-
-        existing_user = User.query.filter_by(username=username).first()
-        if existing_user:
-            return {'message': 'Username already in use. Please choose a different one.'}, 400
-
-        newuser = User(username=username, email=email, phone_number=phone_number)
-        newuser.password_hash = generate_password_hash(password)
-
-        db.session.add(newuser)
-        db.session.commit()
-
-        session['userid'] = newuser.id
-
-        return make_response(newuser.to_dict(), 201)
-
-
-api.add_resource(SignUp, '/signup', endpoint='/signup')
-
-
-class Logout(Resource):
-    def delete(self):
-        if session.get('userid'):
-            session['userid'] = None
-            return jsonify({'message': 'User logged out successfully'})
-        else:
-            return {"error": "User must be logged in"}
-
-
-api.add_resource(Logout, '/logout', endpoint='logout')
-
-class Eventors(Resource):
-    def get(self):
-        even_dict = [n.to_dict() for n in Event.query.all()]
-        response = make_response(jsonify(even_dict), 200)
         return response
 
     def post(self):
-        data = request.get_json()
+
         newrec = Event(
             event=data.get('event'),
             start_time=data.get('start_time'),
@@ -80,6 +36,7 @@ class Eventors(Resource):
             regular_price=data.get('regular_price'),
             Early_booking_price=data.get('Early_booking_price'),
         )
+
         db.session.add(newrec)
         db.session.commit()
 
@@ -89,10 +46,6 @@ class Eventors(Resource):
         response.content_type = 'application/json'
 
         return response
-
-
-api.add_resource(Eventors, '/events', endpoint='events')
-
 
 class PaymentResource(Resource):
     def get(self):

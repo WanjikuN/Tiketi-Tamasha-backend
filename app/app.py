@@ -6,6 +6,9 @@ from werkzeug.exceptions import NotFound
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
 from models import db,Event, Payment, Role, Category
+import os
+from dotenv import load_dotenv
+load_dotenv()
 # from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 import random
 import string
@@ -17,7 +20,7 @@ from datetime import datetime
 import base64
 
 app =Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///app.db'
+app.config['SQLALCHEMY_DATABASE_URI']=os.environ['DATABASE_URI']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR']=True
 # migrate = Migrate(app.db)

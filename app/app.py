@@ -5,7 +5,7 @@ from flask_restful import Api,Resource
 from werkzeug.exceptions import NotFound
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db,Event, Payment, Role, Category
+from app.models import db,Event, Payment, Role, Category
 import os
 from dotenv import load_dotenv
 load_dotenv()

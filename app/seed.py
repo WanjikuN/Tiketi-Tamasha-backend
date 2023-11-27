@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from faker import Faker
-from models import db, User, Role, Event, Payment, Category
+from app.models import db, User, Role, Event, Payment, Category
 import re
 import os
 

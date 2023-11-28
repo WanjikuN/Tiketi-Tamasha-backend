@@ -81,7 +81,8 @@ class Stk_Push(Resource):
     @cross_origin(supports_credentials=True)
     def post(self):
         data = request.get_data()
-        print(data)
+        print(f"Received callback data: {data}")
+
 
         # Decode bytes to string
         decoded_data = data.decode('utf-8')
@@ -97,14 +98,14 @@ class Stk_Push(Resource):
         result_code = json_data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
 
         items = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
-        if result_code == 0:
-            payment_data = {}
+        amount = request.args.get('amount')
+        phone = request.args.get('phone')
 
-            for item in items:
-                name = item.get('Name')
-                value = item.get('Value')
-                print(f"Name: {name}, Value: {value}")
-                payment_data[name] = value
+        if result_code == 0:
+            payment_data = {
+                 "amount": amount,
+                 "phone": phone,
+            }
 
             file_path = os.path.join(os.path.dirname(__file__), 'lnmo.json')
 

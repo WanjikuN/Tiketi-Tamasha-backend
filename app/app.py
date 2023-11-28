@@ -97,9 +97,9 @@ class Stk_Push(Resource):
         # Access the 'Item' list under 'CallbackMetadata'
         result_code = json_data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
 
-        items = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
-        amount = request.args.get('amount')
-        phone = request.args.get('phone')
+        amount = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', {}).get('Amount')
+        phone = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', {}).get('PhoneNumber')
+
 
         if result_code == 0:
             payment_data = {

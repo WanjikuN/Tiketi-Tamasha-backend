@@ -25,20 +25,21 @@ class SignUp(Resource):
     def post(self):
         data = request.get_json()
 
+        # name = data.get('name')
         username = data.get('username')
-        password = data.get('_password_hash')
+        password = data.get('_password_hash')  
         email = data.get('email')
         phone_number = data.get('phone_number')
+        role_id = data.get('role_id')
 
-        if not username or not password:
-            return {'message': 'Username or password required'}, 400
+        if not username or not password or role_id is None:
+            return {'message': 'Username, password, and role_id are required'}, 400
 
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
             return {'message': 'Username already in use. Please choose a different one.'}, 400
 
-        newuser = User(username=username, email=email, phone_number=phone_number)
-        newuser.password_hash = generate_password_hash(password)
+        newuser = User(username=username, _password_hash=generate_password_hash(password), email=email, phone_number=phone_number, role_id=role_id)
 
         db.session.add(newuser)
         db.session.commit()
@@ -48,7 +49,7 @@ class SignUp(Resource):
         return make_response(newuser.to_dict(), 201)
 
 
-api.add_resource(SignUp, '/signup', endpoint='/signup')
+api.add_resource(SignUp, '/signup', endpoint='signup')
 
 
 class Logout(Resource):

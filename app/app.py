@@ -1,11 +1,11 @@
-# from flask import Flask
 from flask_migrate import Migrate
-from flask import Flask,jsonify,request,make_response
-from flask_restful import Api,Resource
+from flask import Flask, jsonify, request, make_response, session
+from flask_restful import Api, Resource
 from werkzeug.exceptions import NotFound
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db,Event, Payment, Role, Category
+from models import db, Event, Payment, Role, Category, User
+from werkzeug.security import generate_password_hash
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -21,9 +21,12 @@ import base64
 
 app =Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI']= 'sqlite:///app.db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JSONIFY_PRETTYPRINT_REGULAR']=True
-# migrate = Migrate(app.db)
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+app.config['PROPAGATE_EXCEPTIONS'] = True
+
+app.config['SECRET_KEY'] = 'your_secret_key_here'
 db.init_app(app)
 migrate = Migrate(app, db)
 
@@ -134,11 +137,56 @@ class Eventors(Resource):
                     jsonify({"message": "Event not found"}), 404
                 )
 
+class SignUp(Resource):
+    def post(self):
+        data = request.get_json()
+
+        # name = data.get('name')
+        username = data.get('username')
+        password = data.get('_password_hash')  
+        email = data.get('email')
+        phone_number = data.get('phone_number')
+        role_id = data.get('role_id')
+
+        if not username or not password or role_id is None:
+            return {'message': 'Username, password, and role_id are required'}, 400
+
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            return {'message': 'Username already in use. Please choose a different one.'}, 400
+
+        newuser = User(username=username, _password_hash=generate_password_hash(password), email=email, phone_number=phone_number, role_id=role_id)
+
+        db.session.add(newuser)
+        db.session.commit()
+
+        session['userid'] = newuser.id
+
+        return make_response(newuser.to_dict(), 201)
+
+
+api.add_resource(SignUp, '/signup', endpoint='signup')
+
+
+class Logout(Resource):
+    def delete(self):
+        if session.get(c):
+            session['userid'] = None
+            return jsonify({'message': 'User logged out successfully'})
+        else:
+            return {"error": "User must be logged in"}
+
+
+api.add_resource(Logout, '/logout', endpoint='logout')
+
+class Eventors(Resource):
+    def get(self):
+        even_dict = [n.to_dict() for n in Event.query.all()]
+        response = make_response(jsonify(even_dict), 200)
         return response
-    
 
     def post(self):
-        data = request.get_json()        
+        data = request.get_json()
         newrec = Event(
             event=data.get('event'),
             start_time=data.get('start_time'),
@@ -186,12 +234,12 @@ class Eventors(Resource):
             return {'message': 'Event not found'}, 404    
 
         db.session.add(newrec)
-        db.session.commit() 
+        db.session.commit()
 
-        newrec_dict=newrec.to_dict()
+        newrec_dict = newrec.to_dict()
 
-        response=make_response(jsonify(newrec_dict))
-        response.content_type='application/json'
+        response = make_response(jsonify(newrec_dict))
+        response.content_type = 'application/json'
 
         return response
     
@@ -346,3 +394,4 @@ if __name__ == '__main__':
 
 # if __name__ == '__main__':
 #     app.run(debug=True, port=5000)
+

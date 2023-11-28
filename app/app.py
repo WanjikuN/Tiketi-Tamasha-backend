@@ -1,11 +1,11 @@
+# from flask import Flask
 from flask_migrate import Migrate
-from flask import Flask, jsonify, request, make_response, session
-from flask_restful import Api, Resource
+from flask import Flask,jsonify,request,make_response
+from flask_restful import Api,Resource
 from werkzeug.exceptions import NotFound
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db, Event, Payment, Role, Category, User
-from werkzeug.security import generate_password_hash
+from models import db,Event, Payment, Role, Category
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -21,12 +21,9 @@ import base64
 
 app =Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI']= 'sqlite:///app.db'
-
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
-app.config['PROPAGATE_EXCEPTIONS'] = True
-
-app.config['SECRET_KEY'] = 'your_secret_key_here'
+app.config['JSONIFY_PRETTYPRINT_REGULAR']=True
+# migrate = Migrate(app.db)
 db.init_app(app)
 migrate = Migrate(app, db)
 
@@ -117,25 +114,6 @@ def _access_token():
         return data['access_token']
     
 api.add_resource(Stk_Push, '/lnmo', endpoint='lnmo')
-class Eventors(Resource):
-    def get(self, event_id=None):
-        print(f"Received request for event ID: {event_id}")
-
-        if event_id is None:
-            even_list = [{"event_id": n.id, **n.to_dict()} for n in Event.query.all()]
-            response = make_response(
-                jsonify(even_list), 200
-            )
-        else:
-            event = Event.query.get(event_id)
-            if event:
-                response = make_response(
-                    jsonify({"event_id": event.id, **event.to_dict()}), 200
-                )
-            else:
-                response = make_response(
-                    jsonify({"message": "Event not found"}), 404
-                )
 
 class SignUp(Resource):
     def post(self):
@@ -179,14 +157,32 @@ class Logout(Resource):
 
 api.add_resource(Logout, '/logout', endpoint='logout')
 
+
 class Eventors(Resource):
-    def get(self):
-        even_dict = [n.to_dict() for n in Event.query.all()]
-        response = make_response(jsonify(even_dict), 200)
+    def get(self, event_id=None):
+        print(f"Received request for event ID: {event_id}")
+
+        if event_id is None:
+            even_list = [{"event_id": n.id, **n.to_dict()} for n in Event.query.all()]
+            response = make_response(
+                jsonify(even_list), 200
+            )
+        else:
+            event = Event.query.get(event_id)
+            if event:
+                response = make_response(
+                    jsonify({"event_id": event.id, **event.to_dict()}), 200
+                )
+            else:
+                response = make_response(
+                    jsonify({"message": "Event not found"}), 404
+                )
+
         return response
+    
 
     def post(self):
-        data = request.get_json()
+        data = request.get_json()        
         newrec = Event(
             event=data.get('event'),
             start_time=data.get('start_time'),
@@ -234,12 +230,12 @@ class Eventors(Resource):
             return {'message': 'Event not found'}, 404    
 
         db.session.add(newrec)
-        db.session.commit()
+        db.session.commit() 
 
-        newrec_dict = newrec.to_dict()
+        newrec_dict=newrec.to_dict()
 
-        response = make_response(jsonify(newrec_dict))
-        response.content_type = 'application/json'
+        response=make_response(jsonify(newrec_dict))
+        response.content_type='application/json'
 
         return response
     
@@ -394,4 +390,3 @@ if __name__ == '__main__':
 
 # if __name__ == '__main__':
 #     app.run(debug=True, port=5000)
-

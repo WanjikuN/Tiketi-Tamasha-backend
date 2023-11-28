@@ -24,7 +24,7 @@ def seed_users():
             user = User(
                 username=fake.user_name(),
                 email=fake.email(),
-                password=fake.password(),
+                _password_hash=fake.password(),
                 phone_number=phone_number,
                 role_id=fake.random_element(elements=roles).id
             )

@@ -1,8 +1,8 @@
-"""initial migration
+"""add models
 
-Revision ID: c5b039548e68
+Revision ID: a7745ead63c2
 Revises: 
-Create Date: 2023-11-22 22:10:14.363059
+Create Date: 2023-11-28 10:27:54.823545
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'c5b039548e68'
+revision = 'a7745ead63c2'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -51,7 +51,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('username', sa.String(length=100), nullable=False),
     sa.Column('email', sa.String(length=120), nullable=False),
-    sa.Column('password', sa.String(length=100), nullable=False),
+    sa.Column('_password_hash', sa.String(), nullable=True),
     sa.Column('phone_number', sa.String(length=20), nullable=True),
     sa.Column('role_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ),
@@ -67,6 +67,7 @@ def upgrade():
     )
     op.create_table('payments',
     sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('amount', sa.Float(), nullable=True),
     sa.Column('payment_type', sa.String(length=50), nullable=False),
     sa.Column('status', sa.String(length=50), nullable=False),
     sa.Column('payment_date', sa.DateTime(), nullable=False),

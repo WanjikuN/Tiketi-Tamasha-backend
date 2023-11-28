@@ -26,7 +26,7 @@ class SignUp(Resource):
         data = request.get_json()
 
         username = data.get('username')
-        password = data.get('password')
+        password = data.get('_password_hash')
         email = data.get('email')
         phone_number = data.get('phone_number')
 
@@ -53,7 +53,7 @@ api.add_resource(SignUp, '/signup', endpoint='/signup')
 
 class Logout(Resource):
     def delete(self):
-        if session.get('userid'):
+        if session.get(c):
             session['userid'] = None
             return jsonify({'message': 'User logged out successfully'})
         else:

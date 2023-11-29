@@ -1,16 +1,8 @@
-<<<<<<<< HEAD:app/migrations/versions/a692b43117c3_create_models.py
-"""create models
-
-Revision ID: a692b43117c3
-Revises: 
-Create Date: 2023-11-27 10:45:52.580290
-========
 """add models
 
-Revision ID: a7745ead63c2
+Revision ID: 6906009236dd
 Revises: 
-Create Date: 2023-11-28 10:27:54.823545
->>>>>>>> 025455c5f582dfdd8f9afec9c866cf08973a0db3:app/migrations/versions/a7745ead63c2_add_models.py
+Create Date: 2023-11-29 08:19:48.194868
 
 """
 from alembic import op
@@ -18,11 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-<<<<<<<< HEAD:app/migrations/versions/a692b43117c3_create_models.py
-revision = 'a692b43117c3'
-========
-revision = 'a7745ead63c2'
->>>>>>>> 025455c5f582dfdd8f9afec9c866cf08973a0db3:app/migrations/versions/a7745ead63c2_add_models.py
+revision = '6906009236dd'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -63,7 +51,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('username', sa.String(length=100), nullable=False),
     sa.Column('email', sa.String(length=120), nullable=False),
-    sa.Column('_password_hash', sa.String(), nullable=True),
+    sa.Column('_password_hash', sa.String(length=128), nullable=False),
     sa.Column('phone_number', sa.String(length=20), nullable=True),
     sa.Column('role_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ),

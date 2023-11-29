@@ -1,11 +1,14 @@
 # from flask import Flask
 from flask_migrate import Migrate
-from flask import Flask,jsonify,request,make_response
+from flask import Flask,jsonify,request,make_response,session
 from flask_restful import Api,Resource
 from werkzeug.exceptions import NotFound
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db,Event, Payment, Role, Category
+
+from models import db,Event, Payment, Role, Category, User
+
+from werkzeug.security import generate_password_hash
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -23,7 +26,8 @@ app =Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI']= 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR']=True
-# migrate = Migrate(app.db)
+app.config['SECRET_KEY'] = '@23891!DYYJDejdmwhrkis'
+
 db.init_app(app)
 migrate = Migrate(app, db)
 
@@ -119,9 +123,8 @@ class SignUp(Resource):
     def post(self):
         data = request.get_json()
 
-        # name = data.get('name')
         username = data.get('username')
-        password = data.get('_password_hash')  
+        password = data.get('_password_hash')
         email = data.get('email')
         phone_number = data.get('phone_number')
         role_id = data.get('role_id')
@@ -142,13 +145,11 @@ class SignUp(Resource):
 
         return make_response(newuser.to_dict(), 201)
 
-
 api.add_resource(SignUp, '/signup', endpoint='signup')
-
 
 class Logout(Resource):
     def delete(self):
-        if session.get(c):
+        if session.get():
             session['userid'] = None
             return jsonify({'message': 'User logged out successfully'})
         else:

@@ -28,11 +28,10 @@ def seed_users():
                 phone_number=phone_number,
                 role_id=fake.random_element(elements=roles).id
             )
-            print("Adding user:", user)
             user.roles.append(fake.random_element(elements=roles))
             db.session.add(user)
-            db.session.commit() 
-            print("Users added successfully.")
+        db.session.commit() 
+        print("Users added successfully.")
 
 def seed_roles():
     with app.app_context():
@@ -48,8 +47,12 @@ def seed_roles():
 def seed_events():
     with app.app_context():
         users = User.query.all()
+        categories = Category.query.all()
+
         for _ in range(5):
             random_user = fake.random_element(elements=users)
+            random_category = fake.random_element(elements=categories)
+
             event = Event(
                 event_name=fake.word(),
                 description=fake.text(),
@@ -61,8 +64,9 @@ def seed_events():
                 regular_price=fake.random_int(min=75, max=125),
                 images=fake.image_url(),
                 available_tickets=fake.random_int(min=50, max=200),
-                category_id=fake.random_element(elements=(1, 2, 3))
+                category_id=random_category.id
             )
+
             event.users.append(random_user)
 
             db.session.add(event)
@@ -72,13 +76,16 @@ def seed_events():
 def seed_payments():
     with app.app_context():
         for _ in range(10):
+            random_user = fake.random_int(min=1, max=10)
+            random_event = fake.random_int(min=1, max=5)
+
             payment = Payment(
                 amount=fake.random_int(min=10, max=100), 
                 payment_type=fake.random_element(elements=('Credit Card', 'Mpesa')),
                 status=fake.random_element(elements=('Pending', 'Completed')),
                 payment_date=fake.date_time_this_month(),
-                user_id=fake.random_int(min=1, max=10),
-                event_id=fake.random_int(min=1, max=5)
+                user_id=random_user,
+                event_id=random_event
             )
             db.session.add(payment)
         db.session.commit() 

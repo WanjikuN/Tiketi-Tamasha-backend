@@ -82,6 +82,8 @@ class Stk_Push(Resource):
 
     @cross_origin(supports_credentials=True)
     def post(self):
+        print("Inside Stk_Push post method")
+
         data = request.get_data()
         print(f"Received callback data: {data}")
 

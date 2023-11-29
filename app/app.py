@@ -1,4 +1,4 @@
-# from flask import Flask
+from flask import Flask
 from flask_migrate import Migrate
 from flask import Flask,jsonify,request,make_response
 from flask_restful import Api,Resource

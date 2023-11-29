@@ -1,11 +1,11 @@
 # from flask import Flask
 from flask_migrate import Migrate
-from flask import Flask,jsonify,request,make_response
-from flask_restful import Api,Resource
+from flask import Flask, jsonify, request, make_response
+from flask_restful import Api, Resource
 from werkzeug.exceptions import NotFound
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db,Event, Payment, Role, Category
+from models import db, Event, Payment, Role, Category
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -19,10 +19,10 @@ import json
 from datetime import datetime
 import base64
 
-app =Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI']= 'sqlite:///app.db'
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JSONIFY_PRETTYPRINT_REGULAR']=True
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 # migrate = Migrate(app.db)
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -35,17 +35,26 @@ base_url = 'https://tiketi-tamasha-backend.onrender.com'
 consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'
 consumer_secrets = 'YG2R7UVJfKtj8MkK'
 
-
 class Stk_Push(Resource):
+    @staticmethod
+    def _access_token():
+        consumer_key = consumer_keys
+        consumer_secret = consumer_secrets
+        endpoint = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
+
+        r = requests.get(endpoint, auth=HTTPBasicAuth(consumer_key, consumer_secret))
+        data = r.json()
+        return data['access_token']
+
     @cross_origin(supports_credentials=True)
     def get(self):
-        amount =request.args.get('amount')
+        amount = request.args.get('amount')
         phone = request.args.get('phone')
 
         endpoint = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
 
-        access_token = _access_token()
-        headers = { "Authorization": "Bearer %s" % access_token }
+        access_token = Stk_Push._access_token()
+        headers = {"Authorization": "Bearer %s" % access_token}
         my_endpoint = base_url + "/lnmo"
         Timestamp = datetime.now()
         times = Timestamp.strftime("%Y%m%d%H%M%S")
@@ -57,23 +66,23 @@ class Stk_Push(Resource):
             "Password": datapass,
             "Timestamp": times,
             "TransactionType": "CustomerPayBillOnline",
-            "PartyA": phone, 
+            "PartyA": phone,
             "PartyB": "174379",
-            "PhoneNumber": phone, 
+            "PhoneNumber": phone,
             "CallBackURL": my_endpoint,
             "AccountReference": "Tiketi Tamasha",
             "TransactionDesc": "HelloTest",
             "Amount": amount
         }
 
-        res = requests.post(endpoint, json = data, headers = headers)
+        res = requests.post(endpoint, json=data, headers=headers)
         return res.json()
-
 
     @cross_origin(supports_credentials=True)
     def post(self):
         data = request.get_data()
-        print(data)
+        print(f"Received callback data: {data}")
+
 
         # Decode bytes to string
         decoded_data = data.decode('utf-8')
@@ -88,23 +97,44 @@ class Stk_Push(Resource):
         # Access the 'Item' list under 'CallbackMetadata'
         result_code = json_data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
 
-        items = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
+        amount = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', {}).get('Amount')
+        phone = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', {}).get('PhoneNumber')
+
+
         if result_code == 0:
-            
-            for item in items:
-                name = item.get('Name')
-                value = item.get('Value')
-                print(f"Name: {name}, Value: {value}")
-        # 'a' (append) mode
+            payment_data = {
+                 "amount": amount,
+                 "phone": phone,
+            }
+
+            file_path = os.path.join(os.path.dirname(__file__), 'lnmo.json')
+
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, 'r') as f:
+                        existing_data = json.load(f)
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding JSON: {e}")
+                    return 'Error decoding JSON'
+
+            else:
+                existing_data = {}
+
+            # Append the new payment data to the existing dictionary
+            existing_data[datetime.now().isoformat()] = payment_data
+
+            try:
+                with open(file_path, 'w') as f:
+                    json.dump(existing_data, f, indent=2)
+            except Exception as e:
+                print(f"Error writing to lnmo.json: {e}")
+
         else:
-            
             print(f"Payment failed. Result Code: {result_code}")
 
-        with open('lnmo.json', 'a') as f:
-            f.write(decoded_data)
         return jsonify({"Result": "ok"})
 
-def _access_token():
+    def _access_token():
         consumer_key = consumer_keys
         consumer_secret = consumer_secrets
         endpoint = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
@@ -112,8 +142,9 @@ def _access_token():
         r = requests.get(endpoint, auth=HTTPBasicAuth(consumer_key, consumer_secret))
         data = r.json()
         return data['access_token']
-    
+
 api.add_resource(Stk_Push, '/lnmo', endpoint='lnmo')
+
 
 class SignUp(Resource):
     def post(self):
@@ -163,9 +194,9 @@ class Eventors(Resource):
         print(f"Received request for event ID: {event_id}")
 
         if event_id is None:
-            even_list = [{"event_id": n.id, **n.to_dict()} for n in Event.query.all()]
+            event_list = [{"event_id": n.id, **n.to_dict()} for n in Event.query.all()]
             response = make_response(
-                jsonify(even_list), 200
+                jsonify(event_list), 200
             )
         else:
             event = Event.query.get(event_id)
@@ -251,7 +282,7 @@ class PaymentResource(Resource):
 
     def post(self):
         data = request.get_json()
-        
+        print("Received POST request:", data)
         new_payment = Payment(
             payment_type=data.get('payment_type'),
             payment_date=data.get('payment_date'),

@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import validates
 from sqlalchemy_serializer import SerializerMixin
-
+from werkzeug.security import check_password_hash
 import re
 
 db = SQLAlchemy()
@@ -79,6 +79,9 @@ class User(db.Model, SerializerMixin):
             if not pattern.match(phone_number):
                 raise ValueError("Invalid phone number format.")
         return phone_number
+
+    def check_password(self, password):
+        return check_password_hash(self.password, password)    
 
 
 class Event(db.Model, SerializerMixin):

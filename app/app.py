@@ -5,7 +5,8 @@ from flask_restful import Api,Resource
 from werkzeug.exceptions import NotFound
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db,Event, Payment, Role, Category
+from models import db,Event, Payment, Role, Category, User
+from flask import request, jsonify
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -23,7 +24,7 @@ app =Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI']= 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR']=True
-# migrate = Migrate(app.db)
+
 db.init_app(app)
 migrate = Migrate(app, db)
 
@@ -34,6 +35,23 @@ CORS(app, resources={r"/lnmo": {"origins": "http://localhost:3000"}})
 base_url = 'https://77fb-41-90-66-250.ngrok-free.app'
 consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'
 consumer_secrets = 'YG2R7UVJfKtj8MkK'
+
+@app.route('/login', methods=['POST'])
+def login():
+    if request.method == 'POST':
+        username = request.json.get('username')
+        password = request.json.get('password')
+
+
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            
+            
+            # Return a success message or tokens
+            return jsonify({'message': 'Login successful', 'access_token': 'your_access_token', 'refresh_token': 'your_refresh_token'}), 200
+        else:
+            return jsonify({'message': 'Invalid credentials'}), 401  
+    return jsonify({'message': 'Method not allowed'}), 405  
 
 
 class Stk_Push(Resource):

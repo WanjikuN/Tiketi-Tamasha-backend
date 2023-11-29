@@ -103,6 +103,11 @@ class Stk_Push(Resource):
         phone = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', {}).get('PhoneNumber')
 
 
+        print(f"Result Code: {result_code}")
+        print(f"Amount: {amount}")
+        print(f"Phone: {phone}")
+
+
         if result_code == 0:
             payment_data = {
                  "amount": amount,
@@ -128,6 +133,8 @@ class Stk_Push(Resource):
             try:
                 with open(file_path, 'w') as f:
                     json.dump(existing_data, f, indent=2)
+                print("Payment information recorded successfully.")
+
             except Exception as e:
                 print(f"Error writing to lnmo.json: {e}")
 

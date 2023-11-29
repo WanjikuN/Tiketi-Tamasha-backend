@@ -1,11 +1,12 @@
 # from flask import Flask
 from flask_migrate import Migrate
-from flask import Flask, jsonify, request, make_response
+from flask import Flask, jsonify, request, make_response, session
 from flask_restful import Api, Resource
 from werkzeug.exceptions import NotFound
+from werkzeug.security import generate_password_hash
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db, Event, Payment, Role, Category
+from models import db, Event, Payment, Role, Category, User
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -23,6 +24,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+app.secret_key ="12jdhRIF567@#dzv&zhW"
 # migrate = Migrate(app.db)
 db.init_app(app)
 migrate = Migrate(app, db)

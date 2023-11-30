@@ -3,7 +3,7 @@ from sqlalchemy.orm import validates
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy_serializer import SerializerMixin
 from flask_bcrypt import Bcrypt
-
+from werkzeug.security import check_password_hash
 import re
 
 db = SQLAlchemy()
@@ -82,9 +82,7 @@ class User(db.Model, SerializerMixin):
         self._password_hash = password_hash.decode('utf-8')
 
     def authenticate(self, password):
-        return bcrypt.check_password_hash(
-            self._password_hash, password.encode('utf-8'))
-        
+        return check_password_hash(self._password_hash, password)
 
     @validates('phone_number')
     def validate_phone_number(self, key, phone_number):

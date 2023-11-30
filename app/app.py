@@ -325,15 +325,7 @@ class Eventors(Resource):
         else:
             return {'message': 'Event not found'}, 404    
 
-        db.session.add(newrec)
-        db.session.commit() 
-
-        newrec_dict=newrec.to_dict()
-
-        response=make_response(jsonify(newrec_dict))
-        response.content_type='application/json'
-
-        return response
+        
     
 api.add_resource(Eventors, '/events', '/events/<int:event_id>', endpoint='events')
 
@@ -371,7 +363,15 @@ class PaymentResource(Resource):
             return {'message': 'Payment deleted successfully'}, 200
         else:
             return {'message': 'Payment not found'}, 404
-
+    update_payment_model = api.model('UpdatePayment', {
+    'payment_type': fields.String(description='Updated payment type'),
+    'payment_date': fields.String(description='Updated payment date'),
+    'user_id': fields.Integer(description='Updated user ID'),
+    'status': fields.String(description='Updated payment status'),
+    'event_id': fields.Integer(description='Updated event ID'),
+   
+    })
+    @api.expect(update_payment_model)
     def put(self, payment_id):
         payment = Payment.query.get(payment_id)
         if payment:
@@ -384,12 +384,7 @@ class PaymentResource(Resource):
         else:
             return {'message': 'Payment not found'}, 404    
 
-        db.session.add(new_payment)
-        db.session.commit()
-
-        new_payment_dict = new_payment.to_dict()
-        return make_response(jsonify(new_payment_dict), 201)
-
+        
 api.add_resource(PaymentResource, '/payments', '/payments/<int:payment_id>', endpoint='payments')
 
 
@@ -425,7 +420,12 @@ class RoleResource(Resource):
             return {'message': 'Role deleted successfully'}, 200
         else:
             return {'message': 'Role not found'}, 404
-
+    update_role_model = api.model('UpdateRole', {
+    'role_name': fields.String(description='Updated role name'),
+    'description': fields.String(description='Updated role description'),
+    
+    })
+    @api.expect(update_role_model)
     def put(self, role_id):
         role = Role.query.get(role_id)
         if role:
@@ -473,8 +473,14 @@ class CategoryResource(Resource):
             return {'message': 'Category deleted successfully'}, 200
         else:
             return {'message': 'Category not found'}, 404
-
+    update_category_model = api.model('UpdateCategory', {
+    'category_name': fields.String(description='Updated category name'),
+    'event_id': fields.Integer(description='Updated event ID'),
+    
+    })
+    @api.expect(update_category_model)
     def put(self, category_id):
+        
         category = Category.query.get(category_id)
         if category:
             data = request.get_json()
@@ -485,12 +491,7 @@ class CategoryResource(Resource):
             return {'message': 'Category updated successfully'}, 200
         else:
             return {'message': 'Category not found'}, 404
-        db.session.add(new_category)
-        db.session.commit()
-
-        new_category_dict = new_category.to_dict()
-        return make_response(jsonify(new_category_dict), 201)
-
+        
 api.add_resource(CategoryResource, '/categories','/categories/<int:category_id>', endpoint='categories')
 
         

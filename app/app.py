@@ -353,23 +353,29 @@ api.add_resource(Eventors, '/events', '/events/<int:event_id>', endpoint='events
 @payments_ns.route('/', '/<int:payment_id>')
 class PaymentResource(Resource):
     def get(self):
-        payments = Payment.query.all()
-        payment_list = []
+        # Get the logged-in user's ID from the session
+        user_id = session.get('user_id')
 
-        for payment in payments:
-            payment_dict = payment.to_dict()
+        if user_id:
+            payments = Payment.query.filter_by(user_id=user_id).all()
+            payment_list = []
 
-            event = Event.query.get(payment.event_id)
-            if event:
-                payment_dict['event_name'] = event.event_name
+            for payment in payments:
+                payment_dict = payment.to_dict()
 
-            user = User.query.get(payment.user_id)
-            if user:
-                payment_dict['payer_phone'] = user.phone_number
+                event = Event.query.get(payment.event_id)
+                if event:
+                    payment_dict['event_name'] = event.event_name
 
-            payment_list.append(payment_dict)
+                user = User.query.get(payment.user_id)
+                if user:
+                    payment_dict['payer_phone'] = user.phone_number
 
-        return make_response(jsonify(payment_list), 200)
+                payment_list.append(payment_dict)
+
+            return make_response(jsonify(payment_list), 200)
+        else:
+            return {'message': 'User not logged in'}, 401
 
     parser = reqparse.RequestParser()
     parser.add_argument('payment_type', type=str, help='Type of payment',location='json', required=True)

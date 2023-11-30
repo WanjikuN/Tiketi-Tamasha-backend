@@ -7,7 +7,7 @@ from werkzeug.exceptions import NotFound
 from werkzeug.security import generate_password_hash
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db, Event, Payment, Role, Category, User
+from app.models import db, Event, Payment, Role, Category, User
 import os
 from dotenv import load_dotenv
 load_dotenv()

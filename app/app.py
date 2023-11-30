@@ -49,6 +49,7 @@ payments_ns = api.namespace('Payments', description='Payment operations')
 roles_ns = api.namespace('Roles', description='Role operations')
 categories_ns = api.namespace('Categories', description='Category operations')
 
+
 @stk_ns.route('/')
 class Stk_Push(Resource):
     @staticmethod

@@ -7,7 +7,7 @@ from werkzeug.exceptions import NotFound
 from werkzeug.security import generate_password_hash
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from app.models import db, Event, Payment, Role, Category, User
+from models import db, Event, Payment, Role, Category, User
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -22,7 +22,7 @@ from datetime import datetime
 import base64
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 app.secret_key ="12jdhRIF567@#dzv&zhW"
@@ -30,7 +30,7 @@ app.secret_key ="12jdhRIF567@#dzv&zhW"
 db.init_app(app)
 migrate = Migrate(app, db)
 
-api = Api(app)
+api = Api(app , title='Ticketi Tamasha API ', version='0.0.1', description=' Ticketing site API Documentation', default='All')
 CORS(app, supports_credentials=True)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
@@ -40,7 +40,16 @@ base_url = 'https://tiketi-tamasha-backend.onrender.com'
 consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'
 consumer_secrets = 'YG2R7UVJfKtj8MkK'
 
+# Create namespaces
+stk_ns = api.namespace('STK-Push', description='MPESA STK operations')
+login_ns = api.namespace('Login', description='User Login operations')
+signup_ns = api.namespace('Signup', description='User Signup operations')
+events_ns = api.namespace('Events', description='Event operations')
+payments_ns = api.namespace('Payments', description='Payment operations')
+roles_ns = api.namespace('Roles', description='Role operations')
+categories_ns = api.namespace('Categories', description='Category operations')
 
+@stk_ns.route('/')
 class Stk_Push(Resource):
     @staticmethod
     def _access_token():
@@ -156,7 +165,7 @@ class Stk_Push(Resource):
 
 api.add_resource(Stk_Push, '/lnmo', endpoint='lnmo')
 
-
+@signup_ns.route('/')
 class SignUp(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('username', type=str, help='Username',location='json', required=True)
@@ -196,13 +205,13 @@ class SignUp(Resource):
 
 api.add_resource(SignUp, '/signup', endpoint='signup')
 
+@login_ns.route('/')
 class LoginResource(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('email', type=str, help='Email', location='json', required=True)
     parser.add_argument('_password_hash', type=str, help='Password', location='json', required=True)
 
     @api.expect(parser)
-    @cross_origin()
     def post(self):
         data = request.get_json()
         email = data.get('email')
@@ -230,6 +239,7 @@ class Logout(Resource):
 api.add_resource(Logout, '/logout', endpoint='logout')
 
 
+@events_ns.route('/','/<int:event_id>')
 class Eventors(Resource):
     def get(self, event_id=None):
         print(f"Received request for event ID: {event_id}")
@@ -330,7 +340,7 @@ class Eventors(Resource):
 api.add_resource(Eventors, '/events', '/events/<int:event_id>', endpoint='events')
 
 
-    
+@payments_ns.route('/', '/<int:payment_id>')
 class PaymentResource(Resource):
     def get(self):
         payments = Payment.query.all()
@@ -388,6 +398,7 @@ class PaymentResource(Resource):
 api.add_resource(PaymentResource, '/payments', '/payments/<int:payment_id>', endpoint='payments')
 
 
+@roles_ns.route('/', '/<int:role_id>')
 class RoleResource(Resource):
     def get(self):
         roles = Role.query.all()
@@ -440,7 +451,7 @@ class RoleResource(Resource):
         
 api.add_resource(RoleResource, '/roles','/roles/<int:role_id>', endpoint='roles')
 
-
+@categories_ns.route('/', '/<int:category_id>')
 class CategoryResource(Resource):
     def get(self):
         categories = Category.query.all()

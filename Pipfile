@@ -15,6 +15,7 @@ requests = "*"
 gunicorn = "*"
 psycopg2-binary = "*"
 flask-bcrypt = "*"
+flask-restx = "*"
 
 [dev-packages]
 

@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from faker import Faker
-from app.models import db, User, Role, Event, Payment, Category
+from models import db, User, Role, Event, Payment, Category
 import re
 import os
 
@@ -24,7 +24,7 @@ def seed_users():
             user = User(
                 username=fake.user_name(),
                 email=fake.email(),
-                password=fake.password(),
+                _password_hash=fake.password(),
                 phone_number=phone_number,
                 role_id=fake.random_element(elements=roles).id
             )

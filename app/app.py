@@ -211,7 +211,6 @@ class LoginResource(Resource):
     parser.add_argument('_password_hash', type=str, help='Password', location='json', required=True)
 
     @api.expect(parser)
-    @cross_origin()
     def post(self):
         data = request.get_json()
         email = data.get('email')

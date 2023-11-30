@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <h1>Admin Dashboard</h1>
+
+    <h2>Events</h2>
+    <ul>
+        {% for event in events %}
+            <li>{{ event.event_name }} - {{ event.start_time }} to {{ event.end_time }}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Organizers</h2>
+    <ul>
+        {% for organizer in organizers %}
+            <li>{{ organizer.username }} - {{ organizer.email }}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Customers</h2>
+    <ul>
+        {% for customer in customers %}
+            <li>{{ customer.username }} - {{ customer.email }}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Payments</h2>
+    <ul>
+        {% for payment in payments %}
+            <li>{{ payment.payment_type }} - {{ payment.payment_date }} - Amount: {{ payment.amount }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

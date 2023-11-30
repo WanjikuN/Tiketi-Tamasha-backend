@@ -21,6 +21,7 @@ from requests.auth import HTTPBasicAuth
 import json
 from datetime import datetime
 import base64
+from flask import render_template 
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -40,23 +41,6 @@ CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 base_url = 'https://tiketi-tamasha-backend.onrender.com'
 consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'
 consumer_secrets = 'YG2R7UVJfKtj8MkK'
-
-@app.route('/login', methods=['POST'])
-def login():
-    if request.method == 'POST':
-        username = request.json.get('username')
-        password = request.json.get('password')
-
-
-        user = User.query.filter_by(username=username).first()
-        if user and user.check_password(password):
-            
-            
-            # Return a success message or tokens
-            return jsonify({'message': 'Login successful', 'access_token': 'your_access_token', 'refresh_token': 'your_refresh_token'}), 200
-        else:
-            return jsonify({'message': 'Invalid credentials'}), 401  
-    return jsonify({'message': 'Method not allowed'}), 405  
 
 
 class Stk_Push(Resource):
@@ -520,8 +504,19 @@ def handle_not_found(e):
         404
         )
     return response
+ORGANIZER_ROLE_ID = 1
+CUSTOMER_ROLE_ID = 2
 
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    all_events = Event.query.all()
 
+    all_organizers = User.query.filter_by(role_id=ORGANIZER_ROLE_ID).all()
+    all_customers = User.query.filter_by(role_id=CUSTOMER_ROLE_ID).all()
+
+    all_payments = Payment.query.all()
+
+    return render_template('admin_dashboard.html', events=all_events, organizers=all_organizers, customers=all_customers, payments=all_payments)
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

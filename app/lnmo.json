@@ -1,7 +1,1 @@
-{
-    "2023-11-28T22:37:26.123456": {
-      "amount": "1",
-      "phone": "254794092144"
-    }
-
-}
+{"Body": {"stkCallback": {"MerchantRequestID": "42469-93215852-1", "CheckoutRequestID": "ws_CO_02122023093342100718046486", "ResultCode": 0, "ResultDesc": "The service request is processed successfully.", "CallbackMetadata": {"Item": [{"Name": "Amount", "Value": 1.0}, {"Name": "MpesaReceiptNumber", "Value": "RL20Y4FW5A"}, {"Name": "Balance"}, {"Name": "TransactionDate", "Value": 20231202093150}, {"Name": "PhoneNumber", "Value": 254718046486}]}}}}

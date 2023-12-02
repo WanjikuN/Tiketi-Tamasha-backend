@@ -36,7 +36,7 @@ CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 
 
-base_url = 'https://tiketi-tamasha-backend.onrender.com'
+base_url = 'https://a6e6-41-90-66-170.ngrok-free.app'
 consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'
 consumer_secrets = 'YG2R7UVJfKtj8MkK'
 
@@ -98,71 +98,23 @@ class Stk_Push(Resource):
         parser.add_argument('phone', type=str, help='Phone number to process', required=True)
         args = parser.parse_args()
         return res.json()
-        
+    
     @cross_origin(supports_credentials=True)
     def post(self):
-        data = request.get_data()
-        print(f"Received callback data: {data}")
+        data = request.get_json()
+        print(data)
 
+        items = data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
+        print(items)
+        for item in items:
+            name = item.get('Name')
+            value = item.get('Value')
+            print(f"{name}, {value}")
 
-        # Decode bytes to string
-        decoded_data = data.decode('utf-8')
+        with open('lnmo.json', 'w') as f:
+            f.write(json.dumps(data))
+        return jsonify({"status": "success"})
 
-        # Parse the JSON data
-        try:
-            json_data = json.loads(decoded_data)
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON: {e}")
-            return 'Error decoding JSON'
-
-        # Access the 'Item' list under 'CallbackMetadata'
-        result_code = json_data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
-
-        amount = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', {}).get('Amount')
-        phone = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', {}).get('PhoneNumber')
-
-
-        if result_code == 0:
-            payment_data = {
-                 "amount": amount,
-                 "phone": phone,
-            }
-
-            file_path = os.path.join(os.path.dirname(__file__), 'lnmo.json')
-
-            if os.path.exists(file_path):
-                try:
-                    with open(file_path, 'r') as f:
-                        existing_data = json.load(f)
-                except json.JSONDecodeError as e:
-                    print(f"Error decoding JSON: {e}")
-                    return 'Error decoding JSON'
-
-            else:
-                existing_data = {}
-
-            # Append the new payment data to the existing dictionary
-            existing_data[datetime.now().isoformat()] = payment_data
-
-            try:
-                with open(file_path, 'w') as f:
-                    json.dump(existing_data, f, indent=2)
-            except Exception as e:
-                print(f"Error writing to lnmo.json: {e}")
-
-        else:
-            print(f"Payment failed. Result Code: {result_code}")
-
-        return jsonify({"Result": "ok"})
-
-    def _access_token():
-        consumer_key = consumer_keys
-        consumer_secret = consumer_secrets
-        endpoint = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
-
-        r = requests.get(endpoint, auth=HTTPBasicAuth(consumer_key, consumer_secret))
-        data = r.json()
-        return data['access_token']
 
 api.add_resource(Stk_Push, '/lnmo', endpoint='lnmo')
 

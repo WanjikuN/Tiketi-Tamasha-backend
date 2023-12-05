@@ -7,7 +7,7 @@ from werkzeug.exceptions import NotFound
 from werkzeug.security import generate_password_hash
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db, Event, Payment, Role, Category, User
+from models import db, Event, Payment, Role, Category, User, eventsUsers_association
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -195,23 +195,25 @@ api.add_resource(Logout, '/logout', endpoint='logout')
 @events_ns.route('/','/<int:event_id>')
 class Eventors(Resource):
     def get(self, event_id=None):
+        user_id = request.args.get('user_id') 
         print(f"Received request for event ID: {event_id}")
 
-        if event_id is None:
+        if user_id:
+        # Filter events based on the user_id
+            events = Event.query.join(eventsUsers_association).filter_by(users_id=user_id).all()
+            event_list = [{"event_id": event.id, **event.to_dict()} for event in events]
+            response = make_response(jsonify(event_list), 200)
+        elif event_id is None:
+            # If user_id is not provided and event_id is None, return all events
             event_list = [{"event_id": n.id, **n.to_dict()} for n in Event.query.all()]
-            response = make_response(
-                jsonify(event_list), 200
-            )
+            response = make_response(jsonify(event_list), 200)
         else:
+            # If event_id is provided, return the specific event
             event = Event.query.get(event_id)
             if event:
-                response = make_response(
-                    jsonify({"event_id": event.id, **event.to_dict()}), 200
-                )
+                response = make_response({"event_id": event.id, **event.to_dict()}, 200)
             else:
-                response = make_response(
-                    jsonify({"message": "Event not found"}), 404
-                )
+                response = make_response({"message": "Event not found"}, 404)
 
         return response
     parser = reqparse.RequestParser()
@@ -226,23 +228,29 @@ class Eventors(Resource):
 
     @api.expect(parser)
     def post(self):
-        data = request.get_json()        
+        data = request.get_json() 
+        user_id = data['user_id'] 
+        user = User.query.get(user_id)
+        if not user:
+            return {'message': 'User not found'}, 404     
         newrec = Event(
             event_name=data.get('event_name'),
-            start_time=data.get('start_time'),
-            end_time=data.get('end_time'),
+            start_time=datetime.strptime(data.get('start_time'), "%Y-%m-%d %H:%M:%S.%f"),
+            end_time=datetime.strptime(data.get('end_time'), "%Y-%m-%d %H:%M:%S.%f"),
             location=data.get('location'),
             description=data.get('description'),
             MVP_price=data.get('MVP_price'),
             regular_price=data.get('regular_price'),
             early_booking_price=data.get('early_booking_price'),
-            tags=data.get('tags'),
+            tags=','.join(data.get('tags')),
             images=data.get('images'),
-            available_tickets = data.get('available_tickets'),
+            available_tickets=data.get('available_tickets'),
             category_id=data.get('category_id'),
         )
-        
         db.session.add(newrec)
+        db.session.commit()
+        newrec.users.append(user)
+        
         db.session.commit()
 
         newrec_dict = newrec.to_dict()

@@ -215,27 +215,31 @@ class Eventors(Resource):
 
         return response
     parser = reqparse.RequestParser()
-    parser.add_argument('event', type=str, help='Event Name',location='json', required=True)
+    parser.add_argument('event_name', type=str, help='Event Name',location='json', required=True)
     parser.add_argument('start_time', type=str, help='Start Time',location='json', required=True)
     parser.add_argument('end_time', type=str, help='End Time',location='json', required=True)
     parser.add_argument('location', type=str, help='Event Location',location='json', required=True)
     parser.add_argument('description', type=str, help='Event Description',location='json', required=True)
-    parser.add_argument('mvp_price', type=float, help='MVP Price',location='json', required=True)
+    parser.add_argument('MVP_price', type=float, help='MVP Price',location='json', required=True)
     parser.add_argument('regular_price', type=float, help='Regular Price',location='json', required=True)
-    parser.add_argument('Early_booking_price', type=float, help='Early Booking Price',location='json', required=True)
+    parser.add_argument('early_booking_price', type=float, help='Early Booking Price',location='json', required=True)
 
     @api.expect(parser)
     def post(self):
         data = request.get_json()        
         newrec = Event(
-            event=data.get('event'),
+            event_name=data.get('event_name'),
             start_time=data.get('start_time'),
             end_time=data.get('end_time'),
             location=data.get('location'),
             description=data.get('description'),
-            mvp_price=data.get('mvp_price'),
+            MVP_price=data.get('MVP_price'),
             regular_price=data.get('regular_price'),
-            Early_booking_price=data.get('Early_booking_price'),
+            early_booking_price=data.get('early_booking_price'),
+            tags=data.get('tags'),
+            images=data.get('images'),
+            available_tickets = data.get('available_tickets'),
+            category_id=data.get('category_id'),
         )
         
         db.session.add(newrec)

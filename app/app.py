@@ -7,7 +7,7 @@ from werkzeug.exceptions import NotFound
 from werkzeug.security import generate_password_hash
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db, Event, Payment, Role, Category, User
+from models import db, Event, Payment, Role, Category, User, eventsUsers_association
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -36,7 +36,7 @@ CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 
 
-base_url = 'https://tiketi-tamasha-backend.onrender.com'
+base_url = 'https://a6e6-41-90-66-170.ngrok-free.app'
 consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'
 consumer_secrets = 'YG2R7UVJfKtj8MkK'
 
@@ -98,80 +98,23 @@ class Stk_Push(Resource):
         parser.add_argument('phone', type=str, help='Phone number to process', required=True)
         args = parser.parse_args()
         return res.json()
-        
+    
     @cross_origin(supports_credentials=True)
     def post(self):
-        print("Inside Stk_Push post method")
+        data = request.get_json()
+        print(data)
 
-        data = request.get_data()
-        print(f"Received callback data: {data}")
+        items = data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
+        print(items)
+        for item in items:
+            name = item.get('Name')
+            value = item.get('Value')
+            print(f"{name}, {value}")
 
+        with open('lnmo.json', 'w') as f:
+            f.write(json.dumps(data))
+        return jsonify({"status": "success"})
 
-        # Decode bytes to string
-        decoded_data = data.decode('utf-8')
-
-        # Parse the JSON data
-        try:
-            json_data = json.loads(decoded_data)
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON: {e}")
-            return 'Error decoding JSON'
-
-        # Access the 'Item' list under 'CallbackMetadata'
-        result_code = json_data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
-
-        amount = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', {}).get('Amount')
-        phone = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', {}).get('PhoneNumber')
-
-
-        print(f"Result Code: {result_code}")
-        print(f"Amount: {amount}")
-        print(f"Phone: {phone}")
-
-
-        if result_code == 0:
-            payment_data = {
-                 "amount": amount,
-                 "phone": phone,
-            }
-
-            file_path = os.path.join(os.path.dirname(__file__), 'lnmo.json')
-
-            if os.path.exists(file_path):
-                try:
-                    with open(file_path, 'r') as f:
-                        existing_data = json.load(f)
-                except json.JSONDecodeError as e:
-                    print(f"Error decoding JSON: {e}")
-                    return 'Error decoding JSON'
-
-            else:
-                existing_data = {}
-
-            # Append the new payment data to the existing dictionary
-            existing_data[datetime.now().isoformat()] = payment_data
-
-            try:
-                with open(file_path, 'w') as f:
-                    json.dump(existing_data, f, indent=2)
-                print("Payment information recorded successfully.")
-
-            except Exception as e:
-                print(f"Error writing to lnmo.json: {e}")
-
-        else:
-            print(f"Payment failed. Result Code: {result_code}")
-
-        return jsonify({"Result": "ok"})
-
-    def _access_token():
-        consumer_key = consumer_keys
-        consumer_secret = consumer_secrets
-        endpoint = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
-
-        r = requests.get(endpoint, auth=HTTPBasicAuth(consumer_key, consumer_secret))
-        data = r.json()
-        return data['access_token']
 
 api.add_resource(Stk_Push, '/lnmo', endpoint='lnmo')
 
@@ -252,50 +195,62 @@ api.add_resource(Logout, '/logout', endpoint='logout')
 @events_ns.route('/','/<int:event_id>')
 class Eventors(Resource):
     def get(self, event_id=None):
+        user_id = request.args.get('user_id') 
         print(f"Received request for event ID: {event_id}")
 
-        if event_id is None:
+        if user_id:
+        # Filter events based on the user_id
+            events = Event.query.join(eventsUsers_association).filter_by(users_id=user_id).all()
+            event_list = [{"event_id": event.id, **event.to_dict()} for event in events]
+            response = make_response(jsonify(event_list), 200)
+        elif event_id is None:
+            # If user_id is not provided and event_id is None, return all events
             event_list = [{"event_id": n.id, **n.to_dict()} for n in Event.query.all()]
-            response = make_response(
-                jsonify(event_list), 200
-            )
+            response = make_response(jsonify(event_list), 200)
         else:
+            # If event_id is provided, return the specific event
             event = Event.query.get(event_id)
             if event:
-                response = make_response(
-                    jsonify({"event_id": event.id, **event.to_dict()}), 200
-                )
+                response = make_response({"event_id": event.id, **event.to_dict()}, 200)
             else:
-                response = make_response(
-                    jsonify({"message": "Event not found"}), 404
-                )
+                response = make_response({"message": "Event not found"}, 404)
 
         return response
     parser = reqparse.RequestParser()
-    parser.add_argument('event', type=str, help='Event Name',location='json', required=True)
+    parser.add_argument('event_name', type=str, help='Event Name',location='json', required=True)
     parser.add_argument('start_time', type=str, help='Start Time',location='json', required=True)
     parser.add_argument('end_time', type=str, help='End Time',location='json', required=True)
     parser.add_argument('location', type=str, help='Event Location',location='json', required=True)
     parser.add_argument('description', type=str, help='Event Description',location='json', required=True)
-    parser.add_argument('mvp_price', type=float, help='MVP Price',location='json', required=True)
+    parser.add_argument('MVP_price', type=float, help='MVP Price',location='json', required=True)
     parser.add_argument('regular_price', type=float, help='Regular Price',location='json', required=True)
-    parser.add_argument('Early_booking_price', type=float, help='Early Booking Price',location='json', required=True)
+    parser.add_argument('early_booking_price', type=float, help='Early Booking Price',location='json', required=True)
 
     @api.expect(parser)
     def post(self):
-        data = request.get_json()        
+        data = request.get_json() 
+        user_id = data['user_id'] 
+        user = User.query.get(user_id)
+        if not user:
+            return {'message': 'User not found'}, 404     
         newrec = Event(
-            event=data.get('event'),
-            start_time=data.get('start_time'),
-            end_time=data.get('end_time'),
+            event_name=data.get('event_name'),
+            start_time=datetime.strptime(data.get('start_time'), "%Y-%m-%d %H:%M:%S.%f"),
+            end_time=datetime.strptime(data.get('end_time'), "%Y-%m-%d %H:%M:%S.%f"),
             location=data.get('location'),
             description=data.get('description'),
-            mvp_price=data.get('mvp_price'),
+            MVP_price=data.get('MVP_price'),
             regular_price=data.get('regular_price'),
-            Early_booking_price=data.get('Early_booking_price'),
+            early_booking_price=data.get('early_booking_price'),
+            tags=','.join(data.get('tags')),
+            images=data.get('images'),
+            available_tickets=data.get('available_tickets'),
+            category_id=data.get('category_id'),
         )
-        
         db.session.add(newrec)
+        db.session.commit()
+        newrec.users.append(user)
+        
         db.session.commit()
 
         newrec_dict = newrec.to_dict()
@@ -556,5 +511,3 @@ if __name__ == '__main__':
         db.create_all()
     app.run(debug=True)
 
-# if __name__ == '__main__':
-#     app.run(debug=True, port=5000)

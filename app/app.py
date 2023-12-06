@@ -308,9 +308,29 @@ api.add_resource(Eventors, '/events', '/events/<int:event_id>', endpoint='events
 @payments_ns.route('/', '/<int:payment_id>')
 class PaymentResource(Resource):
     def get(self):
-        payments = Payment.query.all()
-        payment_dict = [payment.to_dict() for payment in payments]
-        return make_response(jsonify(payment_dict), 200)
+        # Get the logged-in user's ID from the session
+        user_id = session.get('user_id')
+
+        if user_id:
+            payments = Payment.query.filter_by(user_id=user_id).all()
+            payment_list = []
+
+            for payment in payments:
+                payment_dict = payment.to_dict()
+
+                event = Event.query.get(payment.event_id)
+                if event:
+                    payment_dict['event_name'] = event.event_name
+
+                user = User.query.get(payment.user_id)
+                if user:
+                    payment_dict['payer_phone'] = user.phone_number
+
+                payment_list.append(payment_dict)
+
+            return make_response(jsonify(payment_list), 200)
+        else:
+            return {'message': 'User not logged in'}, 401
 
     parser = reqparse.RequestParser()
     parser.add_argument('payment_type', type=str, help='Type of payment',location='json', required=True)
@@ -330,6 +350,12 @@ class PaymentResource(Resource):
             status=data.get('status'),
             event_id=data.get('event_id'),
         )
+        db.session.add(new_payment)
+        db.session.commit()
+
+        new_payment_dict = new_payment.to_dict()
+
+        return make_response(jsonify(new_payment_dict), 201)
     def delete(self, payment_id):
         payment = Payment.query.get(payment_id)
         if payment:
@@ -485,5 +511,3 @@ if __name__ == '__main__':
         db.create_all()
     app.run(debug=True)
 
-# if __name__ == '__main__':
-#     app.run(debug=True, port=5000)

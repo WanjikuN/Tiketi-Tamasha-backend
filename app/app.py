@@ -281,25 +281,27 @@ class Eventors(Resource):
             'early_booking_price': fields.Float( description='Early Booking Price'),
                 }) 
     @api.expect(update_event_model)   
-    def put(self, event_id):
+    def patch(self, event_id):
         
         event = Event.query.get(event_id)
         if event:
             data = request.get_json()
-            event.event_name = data.get('event', event.event_name)
-            event.start_time = data.get('start_time', event.start_time)
-            event.end_time = data.get('end_time', event.end_time)
+            event.event_name = data.get('event_name', event.event_name)
             event.location = data.get('location', event.location)
             event.description = data.get('description', event.description)
-            event.MVP_price = data.get('MVP_price', event.MVP_price)
-            event.regular_price = data.get('regular_price', event.regular_price)
-            event.early_booking_price = data.get('early_booking_price', event.early_booking_price)
-
+           
             db.session.commit()
-            return {'message': 'Event updated successfully'}, 200
+            updated_event_data = {
+                'event_id': event.id,
+                'event_name': event.event_name,
+                'location': event.location,
+                'description': event.description,
+                
+            }
+            return {'message': 'Event updated successfully','updated_event': updated_event_data}, 200
         else:
             return {'message': 'Event not found'}, 404    
-
+  
         
     
 api.add_resource(Eventors, '/events', '/events/<int:event_id>', endpoint='events')
@@ -313,21 +315,23 @@ class PaymentResource(Resource):
 
         if user_id:
             payments = Payment.query.filter_by(user_id=user_id).all()
-            payment_list = []
+        else:
+            payments = Payment.query.all()
 
-            for payment in payments:
-                payment_dict = payment.to_dict()
+        payment_list = []
 
-                event = Event.query.get(payment.event_id)
-                if event:
-                    payment_dict['event_name'] = event.event_name
+        for payment in payments:
+            payment_dict = payment.to_dict()
 
-                user = User.query.get(payment.user_id)
-                if user:
-                    payment_dict['payer_phone'] = user.phone_number
+            event = Event.query.get(payment.event_id)
+            if event:
+                payment_dict['event_name'] = event.event_name
 
-                payment_list.append(payment_dict)
+            user = User.query.get(payment.user_id)
+            if user:
+                payment_dict['payer_phone'] = user.phone_number
 
+            payment_list.append(payment_dict)
             return make_response(jsonify(payment_list), 200)
         else:
             return {'message': 'User not logged in'}, 401

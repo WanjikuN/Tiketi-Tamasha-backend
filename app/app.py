@@ -1,4 +1,4 @@
-from flask import Flask
+# from flask import Flask
 from flask_migrate import Migrate
 from flask import Flask, jsonify, request, make_response, session
 from flask_restx import Api,Resource,reqparse,fields
@@ -7,8 +7,7 @@ from werkzeug.exceptions import NotFound
 from werkzeug.security import generate_password_hash
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db,Event, Payment, Role, Category, User
-from flask import request, jsonify
+from models import db, Event, Payment, Role, Category, User
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -21,7 +20,7 @@ from requests.auth import HTTPBasicAuth
 import json
 from datetime import datetime
 import base64
-from flask import render_template 
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -32,17 +31,27 @@ app.secret_key ="12jdhRIF567@#dzv&zhW"
 db.init_app(app)
 migrate = Migrate(app, db)
 
-api = Api(app)
+api = Api(app , title='Ticketi Tamasha API ', version='0.0.1', description=' Ticketing site API Documentation', default='All')
 CORS(app, supports_credentials=True)
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app, resources={r"/": {"origins": ""}}, supports_credentials=True)
 
 
 
-base_url = 'https://tiketi-tamasha-backend.onrender.com'
+base_url = 'https://a6e6-41-90-66-170.ngrok-free.app'
 consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'
 consumer_secrets = 'YG2R7UVJfKtj8MkK'
 
+# Create namespaces
+stk_ns = api.namespace('STK-Push', description='MPESA STK operations')
+login_ns = api.namespace('Login', description='User Login operations')
+signup_ns = api.namespace('Signup', description='User Signup operations')
+events_ns = api.namespace('Events', description='Event operations')
+payments_ns = api.namespace('Payments', description='Payment operations')
+roles_ns = api.namespace('Roles', description='Role operations')
+categories_ns = api.namespace('Categories', description='Category operations')
 
+
+@stk_ns.route('/')
 class Stk_Push(Resource):
     @staticmethod
     def _access_token():
@@ -90,75 +99,26 @@ class Stk_Push(Resource):
         parser.add_argument('phone', type=str, help='Phone number to process', required=True)
         args = parser.parse_args()
         return res.json()
-        
+    
     @cross_origin(supports_credentials=True)
     def post(self):
-        data = request.get_data()
-        print(f"Received callback data: {data}")
+        data = request.get_json()
+        print(data)
 
+        items = data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
+        print(items)
+        for item in items:
+            name = item.get('Name')
+            value = item.get('Value')
+            print(f"{name}, {value}")
 
-        # Decode bytes to string
-        decoded_data = data.decode('utf-8')
-
-        # Parse the JSON data
-        try:
-            json_data = json.loads(decoded_data)
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON: {e}")
-            return 'Error decoding JSON'
-
-        # Access the 'Item' list under 'CallbackMetadata'
-        result_code = json_data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
-
-        amount = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', {}).get('Amount')
-        phone = json_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', {}).get('PhoneNumber')
-
-
-        if result_code == 0:
-            payment_data = {
-                 "amount": amount,
-                 "phone": phone,
-            }
-
-            file_path = os.path.join(os.path.dirname(__file__), 'lnmo.json')
-
-            if os.path.exists(file_path):
-                try:
-                    with open(file_path, 'r') as f:
-                        existing_data = json.load(f)
-                except json.JSONDecodeError as e:
-                    print(f"Error decoding JSON: {e}")
-                    return 'Error decoding JSON'
-
-            else:
-                existing_data = {}
-
-            # Append the new payment data to the existing dictionary
-            existing_data[datetime.now().isoformat()] = payment_data
-
-            try:
-                with open(file_path, 'w') as f:
-                    json.dump(existing_data, f, indent=2)
-            except Exception as e:
-                print(f"Error writing to lnmo.json: {e}")
-
-        else:
-            print(f"Payment failed. Result Code: {result_code}")
-
-        return jsonify({"Result": "ok"})
-
-    def _access_token():
-        consumer_key = consumer_keys
-        consumer_secret = consumer_secrets
-        endpoint = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
-
-        r = requests.get(endpoint, auth=HTTPBasicAuth(consumer_key, consumer_secret))
-        data = r.json()
-        return data['access_token']
+        with open('lnmo.json', 'w') as f:
+            f.write(json.dumps(data))
+        return jsonify({"status": "success"})
 
 api.add_resource(Stk_Push, '/lnmo', endpoint='lnmo')
 
-
+@signup_ns.route('/')
 class SignUp(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('username', type=str, help='Username',location='json', required=True)
@@ -198,13 +158,14 @@ class SignUp(Resource):
 
 api.add_resource(SignUp, '/signup', endpoint='signup')
 
+@login_ns.route('/')
 class LoginResource(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('email', type=str, help='Email', location='json', required=True)
     parser.add_argument('_password_hash', type=str, help='Password', location='json', required=True)
 
     @api.expect(parser)
-    @cross_origin()
+
     def post(self):
         data = request.get_json()
         email = data.get('email')
@@ -232,6 +193,7 @@ class Logout(Resource):
 api.add_resource(Logout, '/logout', endpoint='logout')
 
 
+@events_ns.route('/','/<int:event_id>')
 class Eventors(Resource):
     def get(self, event_id=None):
         print(f"Received request for event ID: {event_id}")
@@ -254,27 +216,31 @@ class Eventors(Resource):
 
         return response
     parser = reqparse.RequestParser()
-    parser.add_argument('event', type=str, help='Event Name',location='json', required=True)
+    parser.add_argument('event_name', type=str, help='Event Name',location='json', required=True)
     parser.add_argument('start_time', type=str, help='Start Time',location='json', required=True)
     parser.add_argument('end_time', type=str, help='End Time',location='json', required=True)
     parser.add_argument('location', type=str, help='Event Location',location='json', required=True)
     parser.add_argument('description', type=str, help='Event Description',location='json', required=True)
-    parser.add_argument('mvp_price', type=float, help='MVP Price',location='json', required=True)
+    parser.add_argument('MVP_price', type=float, help='MVP Price',location='json', required=True)
     parser.add_argument('regular_price', type=float, help='Regular Price',location='json', required=True)
-    parser.add_argument('Early_booking_price', type=float, help='Early Booking Price',location='json', required=True)
+    parser.add_argument('early_booking_price', type=float, help='Early Booking Price',location='json', required=True)
 
     @api.expect(parser)
     def post(self):
         data = request.get_json()        
         newrec = Event(
-            event=data.get('event'),
-            start_time=data.get('start_time'),
-            end_time=data.get('end_time'),
+            event_name=data.get('event_name'),
+            start_time=datetime.strptime(data.get('start_time'), "%Y-%m-%d %H:%M:%S.%f"),
+            end_time=datetime.strptime(data.get('end_time'), "%Y-%m-%d %H:%M:%S.%f"),
             location=data.get('location'),
             description=data.get('description'),
-            mvp_price=data.get('mvp_price'),
+            MVP_price=data.get('MVP_price'),
             regular_price=data.get('regular_price'),
-            Early_booking_price=data.get('Early_booking_price'),
+            early_booking_price=data.get('early_booking_price'),
+            tags=','.join(data.get('tags')),
+            images=data.get('images'),
+            available_tickets=data.get('available_tickets'),
+            category_id=data.get('category_id'),
         )
         
         db.session.add(newrec)
@@ -332,7 +298,7 @@ class Eventors(Resource):
 api.add_resource(Eventors, '/events', '/events/<int:event_id>', endpoint='events')
 
 
-    
+@payments_ns.route('/', '/<int:payment_id>')
 class PaymentResource(Resource):
     def get(self):
         payments = Payment.query.all()
@@ -390,6 +356,7 @@ class PaymentResource(Resource):
 api.add_resource(PaymentResource, '/payments', '/payments/<int:payment_id>', endpoint='payments')
 
 
+@roles_ns.route('/', '/<int:role_id>')
 class RoleResource(Resource):
     def get(self):
         roles = Role.query.all()
@@ -442,7 +409,7 @@ class RoleResource(Resource):
         
 api.add_resource(RoleResource, '/roles','/roles/<int:role_id>', endpoint='roles')
 
-
+@categories_ns.route('/', '/<int:category_id>')
 class CategoryResource(Resource):
     def get(self):
         categories = Category.query.all()
@@ -517,6 +484,12 @@ def admin_dashboard():
     all_payments = Payment.query.all()
 
     return render_template('admin_dashboard.html', events=all_events, organizers=all_organizers, customers=all_customers, payments=all_payments)
+
+@api.route('/users')
+class Users(Resource):
+    def get(self):
+        return {'users': [{'id': 1, 'name': 'User 1'}, {'id': 2, 'name': 'User 2'}]}
+    
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

@@ -7,7 +7,7 @@ from werkzeug.exceptions import NotFound
 from werkzeug.security import generate_password_hash
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
-from models import db, Event, Payment, Role, Category, User, eventsUsers_association
+from app.models import db, Event, Payment, Role, Category, User, eventsUsers_association
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -22,7 +22,7 @@ from datetime import datetime
 import base64
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 app.secret_key ="12jdhRIF567@#dzv&zhW"
@@ -36,7 +36,7 @@ CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 
 
-base_url = 'https://a6e6-41-90-66-170.ngrok-free.app'
+base_url = 'https://tiketi-tamasha-backend.onrender.com'
 consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'
 consumer_secrets = 'YG2R7UVJfKtj8MkK'
 
@@ -514,4 +514,3 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=True)
-

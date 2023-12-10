@@ -1,7 +1,1 @@
-{
-    "2023-11-28T22:37:26.123456": {
-      "amount": "1",
-      "phone": "254794092144"
-    }
-
-}
+{"Body": {"stkCallback": {"MerchantRequestID": "17134-65827809-1", "CheckoutRequestID": "ws_CO_04122023180612039718046486", "ResultCode": 1037, "ResultDesc": "DS timeout user cannot be reached"}}}

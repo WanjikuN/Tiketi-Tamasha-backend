@@ -1,4 +1,6 @@
 # from flask import Flask
+from flask_session import Session
+from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from flask_migrate import Migrate
 from flask import Flask, jsonify, request, make_response, session
 from flask_restx import Api,Resource,reqparse,fields
@@ -24,7 +26,17 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_USE_SIGNER'] = True
+Session(app)
+
 app.secret_key ="12jdhRIF567@#dzv&zhW"
+
+
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+
 # migrate = Migrate(app.db)
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -48,6 +60,11 @@ events_ns = api.namespace('Events', description='Event operations')
 payments_ns = api.namespace('Payments', description='Payment operations')
 roles_ns = api.namespace('Roles', description='Role operations')
 categories_ns = api.namespace('Categories', description='Category operations')
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 @stk_ns.route('/')
 class Stk_Push(Resource):
@@ -182,7 +199,7 @@ api.add_resource(LoginResource, '/login', endpoint='login')
 class Logout(Resource):
     def delete(self):
         if session.get('user_id'):
-            session['userid'] = None
+            session['user_id'] = None
             return jsonify({'message': 'User logged out successfully'})
         else:
             return {"error": "User must be logged in"}

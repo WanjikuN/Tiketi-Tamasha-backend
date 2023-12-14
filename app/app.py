@@ -2,7 +2,6 @@
 from flask_migrate import Migrate
 from flask import Flask, jsonify, request, make_response, session
 from flask_restx import Api,Resource,reqparse,fields
-
 from werkzeug.exceptions import NotFound
 from werkzeug.security import generate_password_hash
 from flask_cors import CORS, cross_origin
@@ -36,7 +35,7 @@ CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 
 
-base_url = 'https://a6e6-41-90-66-170.ngrok-free.app'
+base_url = 'https://tiketi-tamasha-backend.onrender.com'
 consumer_keys = 'TKbOPVqsnYJpiDvQNlcQlMQP5P1Ch2c0'
 consumer_secrets = 'YG2R7UVJfKtj8MkK'
 
@@ -44,11 +43,11 @@ consumer_secrets = 'YG2R7UVJfKtj8MkK'
 stk_ns = api.namespace('STK-Push', description='MPESA STK operations')
 login_ns = api.namespace('Login', description='User Login operations')
 signup_ns = api.namespace('Signup', description='User Signup operations')
+users_ns = api.namespace('Users', description='User operations')
 events_ns = api.namespace('Events', description='Event operations')
 payments_ns = api.namespace('Payments', description='Payment operations')
 roles_ns = api.namespace('Roles', description='Role operations')
 categories_ns = api.namespace('Categories', description='Category operations')
-
 
 @stk_ns.route('/')
 class Stk_Push(Resource):
@@ -195,6 +194,9 @@ api.add_resource(Logout, '/logout', endpoint='logout')
 @events_ns.route('/','/<int:event_id>')
 class Eventors(Resource):
     def get(self, event_id=None):
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 10))
+        offset = (page - 1) * limit
         user_id = request.args.get('user_id') 
         print(f"Received request for event ID: {event_id}")
 
@@ -233,6 +235,7 @@ class Eventors(Resource):
         user = User.query.get(user_id)
         if not user:
             return {'message': 'User not found'}, 404     
+        
         newrec = Event(
             event_name=data.get('event_name'),
             start_time=datetime.strptime(data.get('start_time'), "%Y-%m-%d %H:%M:%S.%f"),
@@ -436,8 +439,7 @@ class RoleResource(Resource):
         role = Role.query.get(role_id)
         if role:
             data = request.get_json()
-            role.role_name = data.get('role_name', role.role_name)
-            role.description = data.get('description', role.description)
+            role.name = data.get('name', role.name)
            
             db.session.commit()
             return {'message': 'Role updated successfully'}, 200
@@ -462,8 +464,8 @@ class CategoryResource(Resource):
         data = request.get_json()
         
         new_category = Category(
-            category_name=data.get('category_name'),
-            event_id=data.get('event_id'),        
+            name=data.get('name'),
+                   
         )
         db.session.add(new_category)
         db.session.commit()  
@@ -486,19 +488,105 @@ class CategoryResource(Resource):
     })
     @api.expect(update_category_model)
     def put(self, category_id):
-        
         category = Category.query.get(category_id)
         if category:
             data = request.get_json()
-            category.category_name = data.get('category_name', category.category_name)
-            category.event_id = data.get('event_id', category.event_id)
+            category.name = data.get('name', category.name)
             
             db.session.commit()
             return {'message': 'Category updated successfully'}, 200
         else:
             return {'message': 'Category not found'}, 404
-        
 api.add_resource(CategoryResource, '/categories','/categories/<int:category_id>', endpoint='categories')
+@users_ns.route('/', '/<int:user_id>')
+class UserResource(Resource):
+    def get(self, user_id=None):
+        if user_id is not None:
+            user = User.query.get(user_id)
+            if user:
+                user_dict = user.to_dict()
+                return make_response(jsonify(user_dict), 200)
+            else:
+                return {'message': 'User not found'}, 404
+        else:
+            users = User.query.all()
+            user_list = [user.to_dict() for user in users]
+            return make_response(jsonify(user_list), 200)
+
+    parser = reqparse.RequestParser()
+    parser.add_argument('username', type=str, help='Username', location='json', required=True)
+    parser.add_argument('email', type=str, help='Email', location='json', required=True)
+    parser.add_argument('phone_number', type=str, help='Phone Number', location='json', required=True)
+    parser.add_argument('role_id', type=int, help='Role ID', location='json', required=True)
+
+    @api.expect(parser)
+    def post(self):
+        data = request.get_json()
+
+        username = data.get('username')
+        email = data.get('email')
+        phone_number = data.get('phone_number')
+        role_id = data.get('role_id')
+
+        if not username or not email or not phone_number or role_id is None:
+            return {'message': 'Username, email, phone_number, and role_id are required'}, 400
+
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            return {'message': 'Username already in use. Please choose a different one.'}, 400
+
+        new_user = User(
+            username=username,
+            email=email,
+            phone_number=phone_number,
+            role_id=role_id
+        )
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        new_user_dict = new_user.to_dict()
+
+        return make_response(jsonify(new_user_dict), 201)
+
+    def delete(self, user_id):
+        user = User.query.get(user_id)
+        if user:
+            db.session.delete(user)
+            db.session.commit()
+            return {'message': 'User deleted successfully'}, 200
+        else:
+            return {'message': 'User not found'}, 404
+
+    update_user_model = api.model('UpdateUser', {
+        'username': fields.String(description='Updated username'),
+        'email': fields.String(description='Updated email'),
+        'phone_number': fields.String(description='Updated phone number'),
+        'role_id': fields.Integer(description='Updated role ID'),
+    })
+
+    @api.expect(update_user_model)
+    def put(self, user_id):
+        user = User.query.get(user_id)
+        if user:
+            data = request.get_json()
+            user.username = data.get('username', user.username)
+            user.email = data.get('email', user.email)
+            user.phone_number = data.get('phone_number', user.phone_number)
+            user.role_id = data.get('role_id', user.role_id)
+
+            db.session.commit()
+            updated_user_data = {
+                'user_id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'phone_number': user.phone_number,
+                'role_id': user.role_id,
+            }
+            return {'message': 'User updated successfully', 'updated_user': updated_user_data}, 200
+        else:
+            return {'message': 'User not found'}, 404
+api.add_resource(UserResource, '/users', '/users/<int:user_id>', endpoint='users')
 
         
 @app.errorhandler(NotFound)
@@ -514,4 +602,3 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=True)
-

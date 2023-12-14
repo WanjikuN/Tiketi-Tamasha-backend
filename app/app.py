@@ -405,7 +405,6 @@ class RoleResource(Resource):
     
     parser = reqparse.RequestParser()
     parser.add_argument('role_name', type=str, help='Role Name',location='json', required=True)
-    parser.add_argument('description', type=str, help='Role Description',location='json', required=True)
 
     @api.expect(parser)
     def post(self):
@@ -431,7 +430,6 @@ class RoleResource(Resource):
             return {'message': 'Role not found'}, 404
     update_role_model = api.model('UpdateRole', {
     'role_name': fields.String(description='Updated role name'),
-    'description': fields.String(description='Updated role description'),
     
     })
     @api.expect(update_role_model)
@@ -457,7 +455,6 @@ class CategoryResource(Resource):
     
     parser = reqparse.RequestParser()
     parser.add_argument('category_name', type=str, help='Category Name',location='json', required=True)
-    parser.add_argument('event_id', type=int, help='Event ID',location='json', required=True)
 
     @api.expect(parser)
     def post(self):

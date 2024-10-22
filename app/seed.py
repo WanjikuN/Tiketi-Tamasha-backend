@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from faker import Faker
+from sqlalchemy import text
 from app.models import db, User, Role, Event, Payment, Category
 import re
 import os
@@ -9,9 +10,18 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
+print("Database URI:", os.environ.get('DATABASE_URI'))
 
 fake = Faker()
-
+def clear_tables():
+    with app.app_context():
+        db.session.execute('TRUNCATE TABLE payments RESTART IDENTITY CASCADE;')
+        db.session.execute('TRUNCATE TABLE events RESTART IDENTITY CASCADE;')
+        db.session.execute('TRUNCATE TABLE users RESTART IDENTITY CASCADE;')
+        db.session.execute('TRUNCATE TABLE roles RESTART IDENTITY CASCADE;')
+        db.session.execute('TRUNCATE TABLE categories RESTART IDENTITY CASCADE;')
+        db.session.commit()
+    print("Tables cleared successfully.")
 def seed_users():
     with app.app_context():
         roles = Role.query.all()
@@ -90,8 +100,15 @@ def seed_payments():
             db.session.add(payment)
         db.session.commit() 
         print("Payments added successfully.")
-
-def seed_categories():
+def clear_tables():
+    with app.app_context():
+        db.session.execute(text('TRUNCATE TABLE payments RESTART IDENTITY CASCADE;'))
+        db.session.execute(text('TRUNCATE TABLE events RESTART IDENTITY CASCADE;'))
+        db.session.execute(text('TRUNCATE TABLE users RESTART IDENTITY CASCADE;'))
+        db.session.execute(text('TRUNCATE TABLE roles RESTART IDENTITY CASCADE;'))
+        db.session.execute(text('TRUNCATE TABLE categories RESTART IDENTITY CASCADE;'))
+        db.session.commit()
+    print("Tables cleared successfully.")
     with app.app_context():
         categories = ['Music', 'Sports', 'Technology']
         for category_name in categories:
@@ -104,12 +121,12 @@ def seed_categories():
 
 if __name__ == '__main__':
     with app.app_context():
+        clear_tables()
+
         db.create_all()
-    
         # Call seed functions
         seed_roles()
         seed_users()
-        seed_categories()
         seed_events()
         seed_payments()
 

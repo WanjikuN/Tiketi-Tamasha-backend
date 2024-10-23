@@ -86,7 +86,7 @@ class Stk_Push(Resource):
             "PartyB": "174379",
             "PhoneNumber": phone,
             "CallBackURL": my_endpoint,
-            "AccountReference": "Tiketi Tamasha",
+            "AccountReference": "E-DAMS",
             "TransactionDesc": "HelloTest",
             "Amount": amount
         }
